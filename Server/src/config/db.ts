@@ -1,11 +1,15 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const dbConnect = ()=>{
-  mongoose.connect(`${process.env.DBurl}Brainly`).then(()=>{
-    console.log("Connected Successfully")
-  }).catch((err)=>{
-    console.log("Something Wrong",err)
-  })
-}
+const dbConnect = async () => {
+  if (!process.env.DBurl) {
+    throw new Error("DBurl is not defined in environment variables");
+  }
 
-export default dbConnect
+  await mongoose.connect(process.env.DBurl, {
+    dbName: "SecondBrainly",
+  });
+
+  console.log("Connected Successfully");
+};
+
+export default dbConnect;

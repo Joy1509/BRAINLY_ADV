@@ -1,124 +1,180 @@
 import { useNavigate } from "react-router-dom";
+import { useNotification } from "../components/NotificationUi/NotificationProvider";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:5000";
+const STORAGE_KEYS = {
+  TOKEN: "token",
+  USER_ID: "userId"
+} as const;
 
 const RegisterPage = ()=>{
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
-  async function handleSubmit1(e : any) {
-    e.preventDefault();
-
-    const form = e.currentTarget;
-    const username = form.username.value;
-    const email = form.email.value;
-    const password = form.password.value;
-
-      if(!username || !email || !password){
-        alert("Incorrect Values")
-        return;
-      }
-    const data = {
-      username,
-      email,
-      password
+  const getFormData = (form: HTMLFormElement, fields: string[]) => {
+    const data: Record<string, string> = {};
+    for (const field of fields) {
+      const element = form.elements.namedItem(field) as HTMLInputElement;
+      data[field] = element?.value || "";
     }
+    return data;
+  };
 
-    try{
-     const res = await fetch("http://localhost:5000/api/v1/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        credentials: "include",
-        body: JSON.stringify(data)
-      });
-      if(res.ok){
-        alert("Account Created");
-      }
-      else{
-        alert("Account already exist");
-      }
-      form.username.value = "";
-      form.email.value = "";
-      form.password.value = "";
-      return;
+  async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const { username, email, password } = getFormData(form, [
+    "username",
+    "email",
+    "password",
+  ]);
 
-      }catch(err){
-        console.log("Error while sending data");
-      }
+  if (!username || !email || !password) {
+    showNotification("error", "Please fill in all fields");
+    return;
   }
 
-  async function handleSubmit2(e : any) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username, email, password }),
+    });
+
+    if (res.ok) {
+      showNotification("success", "Account created successfully!");
+      form.reset(); // ✅ moved here (only on success)
+    } else {
+      showNotification("error", "Account already exists");
+    }
+  } catch (err) {
+    showNotification("error", "Error creating account");
+  }
+}
+
+
+  async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     const form = e.currentTarget;
-    const email = form.email.value;
-    const password = form.password.value;
+    const { email, password } = getFormData(form, ['email', 'password']);
 
-      if( !email || !password){
-        alert("Incorrect Values")
-        return;
-      }
-    const data = {
-      email,
-      password
+    if (!email || !password) {
+      showNotification('error', 'Please fill in all fields');
+      return;
     }
 
-    try{
-      const res = await fetch("http://localhost:5000/api/v1/signin", {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/signin`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data)
+        body: JSON.stringify({ email, password })
       });
+      
       const backendData = await res.json();
       if (res.ok) {
-        localStorage.setItem("token", backendData.token)
-        localStorage.setItem("userId",backendData.userID)
-        alert("Logged in Successfully");
-        navigate("/HomePage"); 
+        localStorage.setItem(STORAGE_KEYS.TOKEN, backendData.token);
+        localStorage.setItem(STORAGE_KEYS.USER_ID, backendData.userID);
+        showNotification('success', 'Logged in successfully!');
+        navigate("/home"); 
       } else {
-        alert("Login failed");
+        showNotification('error', 'Invalid credentials');
       }
-      }catch(err){
-        console.log("Error while sending data");
-      }
+    } catch (err) {
+      showNotification('error', 'Login failed');
+    }
   }
-  return <div className="flex">
-    <div className="h-screen w-[30vw] bg-slate-300 ml-32 flex flex-col justify-center items-center">
-      <div>
-        <div className="text-3xl font-semibold">
-        <h1>Welcome to <span className="text-3xl text-blue-400">Second Brain</span></h1>
-        </div>
-        <div className="text-2xl font-semibold">
-          create your account
-        </div>
-        <form onSubmit={handleSubmit1} className="mt-7 flex flex-col gap-2">
-          <input type="text" placeholder="Username" required name="username" className="outline-none h-12 w-[22vw] rounded-lg p-2 hover:bg-slate-100"/>
-          <input type="email" placeholder="Email" required name="email" className="outline-none h-12 w-[22vw] rounded-lg p-2 hover:bg-slate-100"/>
-          <input type="password" placeholder="Password" required name="password" className="outline-none h-12 w-[22vw] rounded-lg p-2 hover:bg-slate-100"/>
-          <div>
-          <button className="bg-blue-400 px-4 py-2 rounded-2xl font-semibold hover:bg-blue-500">Create my Account</button>
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full">
+        <div className="flex flex-col lg:flex-row">
+          {/* Sign Up Section */}
+          <div className="lg:w-1/2 p-8 bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+            <div className="max-w-md mx-auto">
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold mb-2">Welcome to</h1>
+                <h2 className="text-3xl font-bold text-blue-200">Second Brain</h2>
+                <p className="text-blue-100 mt-4">Organize your thoughts, links, and ideas in one place</p>
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold mb-4">Create your account</h3>
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <input 
+                    type="text" 
+                    placeholder="Username" 
+                    required 
+                    name="username" 
+                    className="w-full px-4 py-3 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                  />
+                  <input 
+                    type="email" 
+                    placeholder="Email" 
+                    required 
+                    name="email" 
+                    className="w-full px-4 py-3 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Password" 
+                    required 
+                    name="password" 
+                    className="w-full px-4 py-3 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                  />
+                  <button className="w-full bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                    Create Account
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
-        </form>
+
+          {/* Login Section */}
+          <div className="lg:w-1/2 p-8">
+            <div className="max-w-md mx-auto">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white text-2xl font-bold">SB</span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800">Welcome Back</h3>
+                <p className="text-gray-600 mt-2">Sign in to your account</p>
+              </div>
+              
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <input 
+                    type="email" 
+                    placeholder="Email" 
+                    required 
+                    name="email" 
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+                  />
+                </div>
+                <div>
+                  <input 
+                    type="password" 
+                    placeholder="Password" 
+                    required 
+                    name="password" 
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 hover:bg-white"
+                  />
+                </div>
+                <button className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                  Sign In
+                </button>
+              </form>
+              
+              <div className="mt-6 text-center">
+                <p className="text-gray-600">New to Second Brain? Create an account on the left!</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div className="h-screen w-[15vw] flex justify-center items-center">
-        <span className="bg-blue-500 px-4 py-3 rounded-full text-white text-2xl">or</span>
-    </div>
-    <div className="flex flex-col h-screen justify-center">
-      <div className="text-2xl font-semibold">
-        Login your account
-      </div>
-      <form onSubmit={handleSubmit2} className="flex flex-col gap-3 mt-7">
-      <input type="email" placeholder="Email" required name="email" className="outline-none h-12 w-[22vw] rounded-lg p-2 bg-slate-100 hover:bg-slate-200 block shadow-md"/>
-      <input type="password" placeholder="Password" required name="password" className="outline-none h-12 w-[22vw] rounded-lg p-2 bg-slate-100 hover:bg-slate-200 block shadow-md"/>
-      <div>
-          <button className="bg-blue-400 px-4 py-2 rounded-2xl font-semibold hover:bg-blue-500 shadow-md mt-2">Login</button>
-      </div>
-      </form>
-    </div>
-  </div>
+  )
 }
 
 export default RegisterPage;

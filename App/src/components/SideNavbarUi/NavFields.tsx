@@ -1,17 +1,19 @@
 interface NavFieldProps{
-  text: String,
+  textt: String,
   startIcon: React.ReactElement
 }
 
 const NavFields = (props: NavFieldProps)=>{
-  return <div className="flex gap-3 items-center hover:border hover:bg-gray-100 h-[6vh] pl-7">
-      <div className="pt-2">
-      {props.startIcon}
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors group">
+      <div className="text-gray-600 group-hover:text-blue-600 transition-colors">
+        {props.startIcon}
       </div>
-      <span className="text-xl font-semibold mt-2">
-      {props.text}
+      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+        {props.textt}
       </span>
-  </div> 
+    </div> 
+  )
 }
 
 export default NavFields;

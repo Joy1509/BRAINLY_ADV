@@ -13,9 +13,10 @@ export async function renderPage(url: string, timeout = 15000): Promise<string |
     const b = await getBrowser();
     const context = await b.newContext({ bypassCSP: true });
     const page = await context.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
-    // wait a short moment to allow client-side rendering
-    await page.waitForTimeout(500);
+    // Use networkidle load strategy and give a bit more time for client rendering
+    await page.goto(url, { waitUntil: 'networkidle', timeout });
+    // wait a short moment to allow dynamic content to settle
+    await page.waitForTimeout(1500);
     const content = await page.content();
     await page.close();
     await context.close();
@@ -24,6 +25,15 @@ export async function renderPage(url: string, timeout = 15000): Promise<string |
     // If Playwright fails (missing browsers or OS restrictions), just return undefined.
     console.error('Playwright render error:', (err as any).message || err);
     return undefined;
+  }
+}
+
+export async function warmUp(): Promise<void> {
+  try {
+    await getBrowser();
+    console.info('Playwright browser warmed up');
+  } catch (err) {
+    console.warn('Playwright warm-up failed:', (err as any).message || err);
   }
 }
 

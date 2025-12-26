@@ -10,7 +10,7 @@ import { useState, useMemo, useCallback, memo } from "react";
 
 /* ---------- TYPES ---------- */
 
-type ContentType = "Youtube" | "Twitter" | "Notion";
+type ContentType = "Youtube" | "Twitter" | "Notion" | "Instagram";
 
 interface ContentItem {
   contentType: ContentType;
@@ -22,6 +22,7 @@ interface SideNavbarProps {
   setYTData: (data: ContentItem[]) => void;
   setNitionData: (data: ContentItem[]) => void;
   setTwitterData: (data: ContentItem[]) => void;
+  setInstagramData: (data: ContentItem[]) => void;
   setDataShow: (type: ContentType | "All") => void;
 }
 
@@ -48,6 +49,11 @@ const SideNavbar = memo((props: SideNavbarProps) => {
     [props.data1]
   );
 
+  const instagramData = useMemo(
+    () => props.data1.filter(item => item.contentType === "Instagram"),
+    [props.data1]
+  );
+
   /* ---------- HANDLERS ---------- */
   const showYoutube = useCallback(() => {
     props.setYTData(youtubeData);
@@ -63,6 +69,11 @@ const SideNavbar = memo((props: SideNavbarProps) => {
     props.setTwitterData(twitterData);
     props.setDataShow("Twitter");
   }, [twitterData, props]);
+
+  const showInstagram = useCallback(() => {
+    props.setInstagramData(instagramData);
+    props.setDataShow("Instagram");
+  }, [instagramData, props]);
 
   const showAll = useCallback(() => {
     props.setDataShow("All");
@@ -132,6 +143,9 @@ const SideNavbar = memo((props: SideNavbarProps) => {
             </div>
             <div onClick={showTwitter}>
               <NavFields textt="Twitter" startIcon={<TwitterIcon />} />
+            </div>
+            <div onClick={showInstagram}>
+              <NavFields textt="Instagram" startIcon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm5 6.5A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5zm5.5-3a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z"/></svg>} />
             </div>
             <div onClick={showNotion}>
               <NavFields textt="Documents" startIcon={<DocumentIcon />} />

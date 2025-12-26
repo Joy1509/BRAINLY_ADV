@@ -27,6 +27,7 @@ const HomePage = ()=>{
   const [ytData, setYTData] = useState<LocalContentItem[]>([]);
   const [notionData, setNitionData] = useState<LocalContentItem[]>([]);
   const [twitterData, setTwitterData] = useState<LocalContentItem[]>([]);
+  const [instagramData, setInstagramData] = useState<LocalContentItem[]>([]);
   const [dataShow, setDataShow] = useState("All");
 
   useEffect(()=>{
@@ -72,6 +73,7 @@ const HomePage = ()=>{
       case "Youtube": return "YouTube Videos";
       case "Notion": return "Documents & Notes";
       case "Twitter": return "Social Posts";
+      case "Instagram": return "Instagram";
       default: return "All Content";
     }
   };
@@ -79,7 +81,8 @@ const HomePage = ()=>{
   const getDisplaySubtitle = () => {
     const count = dataShow === "All" ? data1.length : 
                  dataShow === "Youtube" ? ytData.length : 
-                 dataShow === "Twitter" ? twitterData.length : notionData.length;
+                 dataShow === "Twitter" ? twitterData.length : 
+                 dataShow === "Instagram" ? instagramData.length : notionData.length;
     return `${count} items in your collection`;
   };
 
@@ -139,6 +142,8 @@ const HomePage = ()=>{
         return ytData.length > 0 ? renderCards(ytData) : emptyState("🎥", "No YouTube content", "Add some YouTube videos to get started!");
       case "Twitter":
         return twitterData.length > 0 ? renderCards(twitterData) : emptyState("🐦", "No Twitter content", "Save some interesting tweets!");
+      case "Instagram":
+        return instagramData.length > 0 ? renderCards(instagramData) : emptyState("📸", "No Instagram content", "Save Instagram posts & reels to your brain!");
       default:
         return notionData.length > 0 ? renderCards(notionData) : emptyState("📝", "No documents", "Add some documents to organize your thoughts!");
     }
@@ -189,7 +194,7 @@ const HomePage = ()=>{
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <SideNavbar setYTData={setYTData} setNitionData={setNitionData} data1={data1} setDataShow={setDataShow} setTwitterData={setTwitterData}/>
+      <SideNavbar setYTData={setYTData} setNitionData={setNitionData} data1={data1} setDataShow={setDataShow} setTwitterData={setTwitterData} setInstagramData={setInstagramData} />
       
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Header */}

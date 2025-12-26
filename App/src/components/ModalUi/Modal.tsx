@@ -19,8 +19,9 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [category, setCategory] = useState("Youtube");
   const [showCustomTag, setShowCustomTag] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const categories = useMemo(() => ["Youtube", "Twitter", "Notion"] as const, []);
+  const categories = useMemo(() => ["Youtube", "Twitter", "Notion", "Instagram"] as const, []);
   const predefinedTags = useMemo(
     () => [
       "Productivity", "Tech & Tools", "Mindset", "Learning & Skills", 
@@ -51,16 +52,22 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
   }, []);
 
   const submitData = useCallback(async () => {
+    // Prevent double clicks
+    if (submitting) return;
+    setSubmitting(true);
+
     const title = titleRef.current?.value.trim() || "";
     const link = linkRef.current?.value.trim() || "";
 
     if (!title || !link) {
       showNotification("error", "Please fill all required fields");
+      setSubmitting(false);
       return;
     }
 
     if (selectedTags.length === 0) {
       showNotification("error", "Please select at least one tag");
+      setSubmitting(false);
       return;
     }
 
@@ -68,6 +75,7 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
     if (!token) {
       showNotification("error", "Please log in first");
       navigate("/");
+      setSubmitting(false);
       return;
     }
 
@@ -95,10 +103,12 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
       setReloadData();
       setModal(false);
       showNotification("success", "Content added successfully!");
+      // submitting state will be cleared on unmount (modal closed)
     } catch {
       showNotification("error", "Error while adding content");
+      setSubmitting(false);
     }
-  }, [category, selectedTags, navigate, setModal, setReloadData, showNotification]);
+  }, [category, selectedTags, navigate, setModal, setReloadData, showNotification, submitting]);
 
   return (
     <div className="fixed inset-0 flex justify-center items-center z-50 p-4 bg-black/50 backdrop-blur-sm" onClick={onClick}>
@@ -243,9 +253,18 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
           {/* Submit */}
           <button
             onClick={submitData}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all"
+            disabled={submitting}
+            aria-busy={submitting}
+            className={`w-full text-white py-3 rounded-lg font-semibold transition-all ${submitting ? 'bg-blue-300 cursor-not-allowed' : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700'}`}
           >
-            Add to Second Brain
+            {submitting ? (
+              <>
+                <svg className="w-4 h-4 inline-block animate-spin mr-2" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4} fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                Rendering & Adding...
+              </>
+            ) : (
+              'Add to Second Brain'
+            )}
           </button>
         </div>
       </div>

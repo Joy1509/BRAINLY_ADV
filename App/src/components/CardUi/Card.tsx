@@ -10,7 +10,7 @@ import TwitterIcon from "../icons/TwitterIcon";
 import { useNotification } from "../NotificationUi/NotificationProvider";
 
 interface CardProps {
-  icon: "Youtube" | "Twitter" | "Notion";
+  icon: "Youtube" | "Twitter" | "Notion" | "Instagram";
   tag: string | string[];
   title: string;
   link: string;
@@ -76,6 +76,18 @@ const Card = memo((props: CardProps) => {
           <a href={props.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full h-full">
             <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center hover:bg-blue-200 transition-colors">
               <TwitterIcon />
+            </div>
+          </a>
+        </div>
+      );
+    }
+
+    if (props.icon === "Instagram") {
+      return (
+        <div className="w-full h-full flex items-center justify-center">
+          <a href={props.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full h-full">
+            <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center hover:bg-pink-200 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 fill-current text-pink-600" viewBox="0 0 24 24"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm5 4.25A4.75 4.75 0 1 1 7.25 11 4.75 4.75 0 0 1 12 6.25zm5.4-.9a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
             </div>
           </a>
         </div>

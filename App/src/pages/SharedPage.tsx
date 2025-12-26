@@ -3,7 +3,7 @@ import Card from "../components/CardUi/Card";
 import { useEffect, useState } from "react";
 
 interface SharedContent {
-  contentType: "Youtube" | "Twitter" | "Notion";
+  contentType: "Youtube" | "Twitter" | "Notion" | "Instagram";
   tag?: string | string[];
   tags?: string[];
   summary?: string;

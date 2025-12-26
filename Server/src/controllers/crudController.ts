@@ -25,6 +25,30 @@ async function generateSummary(url: string): Promise<string | undefined> {
           return yt.slice(0, 800).trim();
         }
       }
+
+      if (host.includes('twitter.com') || host.includes('x.com')) {
+        const tw = await fetchTwitterSummary(fetchUrl);
+        if (tw) {
+          console.log('generateSummary: got twitter summary');
+          return tw.slice(0, 800).trim();
+        }
+      }
+
+      if (host.includes('instagram.com') || host.includes('instagr.am')) {
+        const ig = await fetchInstagramSummary(fetchUrl);
+        if (ig) {
+          console.log('generateSummary: got instagram summary');
+          return ig.slice(0, 800).trim();
+        }
+      }
+
+      if (host.includes('notion.so') || host.includes('notion.site')) {
+        const nt = await fetchNotionSummary(fetchUrl);
+        if (nt) {
+          console.log('generateSummary: got notion summary');
+          return nt.slice(0, 800).trim();
+        }
+      }
     } catch (e) {
       // ignore URL parse errors
     }
@@ -238,7 +262,199 @@ export const shareContent = async(req: AuthRequest, res: Response)=>{
 }
 
 // Export generateSummary for maintenance scripts (e.g., to backfill existing documents)
-export { generateSummary, fetchYouTubeDescription };
+export { generateSummary, fetchYouTubeDescription, fetchTwitterSummary, fetchNotionSummary, fetchInstagramSummary };
+
+async function fetchInstagramSummary(url: string): Promise<string | undefined> {
+  try {
+    // Static fetch + meta tags
+    try {
+      let fetchUrl = url;
+      if (!/^https?:\/\//i.test(fetchUrl)) fetchUrl = `https://${fetchUrl}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(fetchUrl, { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' } });
+      clearTimeout(timeout);
+      if (!response.ok) return undefined;
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // Instagram often uses og:description and meta tags containing the caption
+      const meta = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || $('meta[name="twitter:description"]').attr('content');
+      if (meta && meta.trim().length > 20) return meta.trim().slice(0,600);
+
+      // Try to pick up script-based json that sometimes includes caption
+      const ld = $('script[type="application/ld+json"]').map((i, el) => $(el).html()).get();
+      for (const s of ld) {
+        try {
+          const parsed = JSON.parse(s || '{}');
+          const desc = (parsed as any).description || (parsed as any).caption || (parsed as any).articleBody;
+          if (desc && typeof desc === 'string' && desc.trim().length > 20) return desc.trim().slice(0,600);
+        } catch (e) {
+          // ignore
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Playwright render fallback (for JS-heavy Instagram content)
+    if (process.env.PLAYWRIGHT_ENABLED === 'true') {
+      try {
+        const { renderPage } = await import('../utils/browserRenderer');
+        const rendered = await renderPage(url, 15000);
+        if (rendered) {
+          const $$ = cheerio.load(rendered);
+          const meta2 = $$('meta[property="og:description"]').attr('content') || $$('meta[name="description"]').attr('content');
+          if (meta2 && meta2.trim().length > 20) return meta2.trim().slice(0,600);
+          const bodyText = $$.root().text().replace(/\s+/g, ' ').trim();
+          const sentences = bodyText.match(/[^.!?]+[.!?]+/g) || [];
+          if (sentences.length > 0) return sentences.slice(0,3).join(' ').slice(0,600).trim();
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    // Fallback to Python summarizer as a last resort
+    try {
+      const scriptPath = path.resolve(__dirname, '../scripts/generate_summary.py');
+      const args = [scriptPath, url];
+      if (process.env.PLAYWRIGHT_ENABLED === 'true') args.push('--js');
+      const { stdout, stderr } = await execFileP('python', args, { timeout: 20000, maxBuffer: 1024 * 500 });
+      if (stderr) console.warn('instagram python summarizer stderr:', stderr.toString().slice(0, 500));
+      const out = stdout ? stdout.toString().trim() : '';
+      if (out && !out.startsWith('No useful summary')) return out.slice(0, 800).trim();
+    } catch (err) {
+      // ignore
+    }
+
+    return undefined;
+  } catch (err) {
+    return undefined;
+  }
+}
+
+async function fetchTwitterSummary(url: string): Promise<string | undefined> {
+  try {
+    // Try oEmbed first (gives embedded HTML and author info)
+    try {
+      const oembed = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`;
+      const r = await fetch(oembed, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' } });
+      if (r.ok) {
+        const j = await r.json();
+        // j.html contains the embed markup; strip tags to get the tweet text
+        if (j && j.html) {
+          const text = j.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          if (text.length > 0) return text.slice(0, 600).trim();
+        }
+      }
+    } catch (e) {
+      // ignore oEmbed failures
+    }
+
+    // Next, try to fetch meta tags from the tweet page
+    try {
+      let fetchUrl = url;
+      if (!/^https?:\/\//i.test(fetchUrl)) fetchUrl = `https://${fetchUrl}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(fetchUrl, { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' } });
+      clearTimeout(timeout);
+      if (!response.ok) return undefined;
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      const meta = $('meta[property="og:description"]').attr('content') || $('meta[name="twitter:description"]').attr('content');
+      if (meta && meta.trim().length > 0) return meta.trim().slice(0, 600);
+
+      // Sometimes the tweet text is in og:title
+      const ogTitle = $('meta[property="og:title"]').attr('content');
+      if (ogTitle && ogTitle.trim().length > 0) return ogTitle.trim().slice(0, 600);
+    } catch (e) {
+      // ignore
+    }
+
+    // Try Playwright render if available
+    if (process.env.PLAYWRIGHT_ENABLED === 'true') {
+      try {
+        const { renderPage } = await import('../utils/browserRenderer');
+        const rendered = await renderPage(url, 15000);
+        if (rendered) {
+          const $$ = cheerio.load(rendered);
+          const meta2 = $$('meta[property="og:description"]').attr('content') || $$('meta[name="twitter:description"]').attr('content');
+          if (meta2 && meta2.trim().length > 0) return meta2.trim().slice(0, 600);
+          const bodyText = $$.root().text().replace(/\s+/g, ' ').trim();
+          const sentences = bodyText.match(/[^.!?]+[.!?]+/g) || [];
+          if (sentences.length > 0) return sentences.slice(0,3).join(' ').slice(0,600).trim();
+        }
+      } catch (err) {}
+    }
+
+    return undefined;
+  } catch (err) {
+    return undefined;
+  }
+}
+
+async function fetchNotionSummary(url: string): Promise<string | undefined> {
+  try {
+    // Notion often includes og meta tags; try static fetch first
+    try {
+      let fetchUrl = url;
+      if (!/^https?:\/\//i.test(fetchUrl)) fetchUrl = `https://${fetchUrl}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(fetchUrl, { signal: controller.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible)' } });
+      clearTimeout(timeout);
+      if (!response.ok) return undefined;
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // Prefer og:description or twitter:description
+      const meta = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || $('meta[name="twitter:description"]').attr('content');
+      if (meta && meta.trim().length > 20) return meta.trim().slice(0, 600);
+
+      // Try to assemble from title + first paragraphs
+      const title = $('meta[property="og:title"]').attr('content') || $('title').text();
+      const paras = $('p').map((i, el) => $(el).text().replace(/\s+/g, ' ').trim()).get().filter(p => p.length > 30);
+      if (paras.length > 0) return `${title ? title + '. ' : ''}${paras.slice(0,3).join(' ')}`.slice(0,600).trim();
+    } catch (e) {
+      // ignore
+    }
+
+    // Playwright render as fallback for JS-heavy Notion pages
+    if (process.env.PLAYWRIGHT_ENABLED === 'true') {
+      try {
+        const { renderPage } = await import('../utils/browserRenderer');
+        const rendered = await renderPage(url, 15000);
+        if (rendered) {
+          const $$ = cheerio.load(rendered);
+          const meta2 = $$('meta[property="og:description"]').attr('content') || $$('meta[name="description"]').attr('content');
+          if (meta2 && meta2.trim().length > 20) return meta2.trim().slice(0,600);
+          const title = $$('meta[property="og:title"]').attr('content') || $$.root().find('h1').first().text().trim();
+          const paras2 = $$('p').map((i, el) => $$(el).text().replace(/\s+/g, ' ').trim()).get().filter(p => p.length > 30);
+          if (paras2.length > 0) return `${title ? title + '. ' : ''}${paras2.slice(0,3).join(' ')}`.slice(0,600).trim();
+        }
+      } catch (err) {}
+    }
+
+    // Last resort: invoke the Python summarizer used elsewhere in the file
+    try {
+      const scriptPath = path.resolve(__dirname, '../scripts/generate_summary.py');
+      const args = [scriptPath, url];
+      if (process.env.PLAYWRIGHT_ENABLED === 'true') args.push('--js');
+      const { stdout, stderr } = await execFileP('python', args, { timeout: 20000, maxBuffer: 1024 * 500 });
+      if (stderr) console.warn('notion python summarizer stderr:', stderr.toString().slice(0, 500));
+      const out = stdout ? stdout.toString().trim() : '';
+      if (out && !out.startsWith('No useful summary')) return out.slice(0, 800).trim();
+    } catch (err) {
+      // ignore
+    }
+
+    return undefined;
+  } catch (err) {
+    return undefined;
+  }
+}
 
 async function fetchYouTubeDescription(url: string): Promise<string | undefined> {
   try {

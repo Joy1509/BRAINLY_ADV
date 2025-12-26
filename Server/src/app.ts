@@ -19,8 +19,17 @@ dbConnect();
 app.use("/api/v1",router);
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+
+// Optionally warm up Playwright browser to reduce first-request latency
+if (process.env.PLAYWRIGHT_ENABLED === 'true') {
+  import('./utils/browserRenderer')
+    .then(m => m.warmUp())
+    .catch(err => console.warn('Playwright warm-up import failed:', (err as any).message || err));
+}
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+  if (process.env.PLAYWRIGHT_ENABLED === 'true') console.log('Playwright rendering is ENABLED (PLAYWRIGHT_ENABLED=true)');
 }).on('error', (err) => {
   console.error('Server failed to start:', err);
 });

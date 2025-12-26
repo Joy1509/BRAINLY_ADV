@@ -69,4 +69,30 @@ Here’s a quick peek at how the app looks:
    ```bash
    git clone https://github.com/SUMITSUNWAL/Second-Brain.git
    cd Second-Brain
+   ```
+
+2. **Install dependencies:**
+
+   ```bash
+   # root
+   npm install
+   # then for server
+   cd Server && npm install
+   ```
+
+3. **(Optional) Enable Playwright rendering for better JS-heavy page extraction** ⚠️
+
+   Some pages (for example, Instagram posts or JS-heavy sites) require a headless browser to fully render content before summary extraction. The app supports Playwright-based rendering as an optional feature.
+
+   - Install browsers (if not installed automatically):
+     ```bash
+     cd Server && npx playwright install --with-deps
+     ```
+   - Enable Playwright by setting the environment variable `PLAYWRIGHT_ENABLED=true` (for example in `Server/.env` or export it in your environment). Example `.env` entry:
+     ```ini
+     PLAYWRIGHT_ENABLED=true
+     ```
+   - Restart the server. The server will warm up the Playwright browser on start (reduces first-request latency).
+
+   Note: Playwright uses headless browser binaries — ensure your environment (CI, container, or host) supports running headless Chrome/Chromium.
 

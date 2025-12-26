@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useNotification } from "../components/NotificationUi/NotificationProvider";
 
 interface LocalContentItem {
-  contentType: "Youtube" | "Twitter" | "Notion";
+  contentType: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text";
   tag?: string | string[];
   tags?: string[];
   summary?: string;
@@ -28,6 +28,7 @@ const HomePage = ()=>{
   const [notionData, setNitionData] = useState<LocalContentItem[]>([]);
   const [twitterData, setTwitterData] = useState<LocalContentItem[]>([]);
   const [instagramData, setInstagramData] = useState<LocalContentItem[]>([]);
+  const [textData, setTextData] = useState<LocalContentItem[]>([]);
   const [dataShow, setDataShow] = useState("All");
 
   useEffect(()=>{
@@ -44,7 +45,7 @@ const HomePage = ()=>{
         return;
       }
 
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:5000";
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
       
       const res = await fetch(`${API_BASE_URL}/api/v1/content`, {
         method: "GET",
@@ -71,9 +72,10 @@ const HomePage = ()=>{
   const getDisplayTitle = () => {
     switch(dataShow) {
       case "Youtube": return "YouTube Videos";
-      case "Notion": return "Documents & Notes";
+      case "Notion": return "Notion";
       case "Twitter": return "Social Posts";
       case "Instagram": return "Instagram";
+      case "Text": return "Notes & Text";
       default: return "All Content";
     }
   };
@@ -82,7 +84,8 @@ const HomePage = ()=>{
     const count = dataShow === "All" ? data1.length : 
                  dataShow === "Youtube" ? ytData.length : 
                  dataShow === "Twitter" ? twitterData.length : 
-                 dataShow === "Instagram" ? instagramData.length : notionData.length;
+                 dataShow === "Instagram" ? instagramData.length : 
+                 dataShow === "Text" ? textData.length : notionData.length;
     return `${count} items in your collection`;
   };
 
@@ -115,10 +118,10 @@ const HomePage = ()=>{
     const renderCards = (data: LocalContentItem[]) => 
       data.map((item: any, idx: number) => (
         <Card 
-          key={`${item.title}-${item.link}-${idx}`}
+          key={`${item.title}-${item.link || item._id}-${idx}`}
           icon={item.contentType} 
           tag={(item as any).tags || (item as any).tag} 
-          summary={(item as any).summary}
+          summary={(item as any).summary || (item as any).text}
           title={item.title} 
           link={item.link} 
           reload={() => setReloadData(!reloadData)}
@@ -144,6 +147,8 @@ const HomePage = ()=>{
         return twitterData.length > 0 ? renderCards(twitterData) : emptyState("🐦", "No Twitter content", "Save some interesting tweets!");
       case "Instagram":
         return instagramData.length > 0 ? renderCards(instagramData) : emptyState("📸", "No Instagram content", "Save Instagram posts & reels to your brain!");
+      case "Text":
+        return textData.length > 0 ? renderCards(textData) : emptyState("📝", "No notes yet", "Add some typed notes or quick thoughts!");
       default:
         return notionData.length > 0 ? renderCards(notionData) : emptyState("📝", "No documents", "Add some documents to organize your thoughts!");
     }
@@ -160,7 +165,7 @@ const HomePage = ()=>{
         return;
       }
 
-      const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:5000";
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
       
       const res = await fetch(`${API_BASE_URL}/api/v1/content`, {
         method: "GET",
@@ -194,50 +199,81 @@ const HomePage = ()=>{
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <SideNavbar setYTData={setYTData} setNitionData={setNitionData} data1={data1} setDataShow={setDataShow} setTwitterData={setTwitterData} setInstagramData={setInstagramData} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="ml-12 lg:ml-0">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  {getDisplayTitle()}
-                </h1>
-                <p className="text-sm text-gray-600 mt-1">{getDisplaySubtitle()}</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <div onClick={share} className="w-full sm:w-auto">
-                  <ButtonUi variant="secondary" size="lg" startIcon={<ShareIcon/>}>Share</ButtonUi>
-                </div>
-                <div className="w-full sm:w-auto">
-                  <ButtonUi 
-                    variant="primary" 
-                    size="lg" 
-                    startIcon={<PlusIcon/>} 
-                    onClick={()=> setModal(!modal)}
-                  >
-                    Add Content
-                  </ButtonUi>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <SideNavbar
+    setYTData={setYTData}
+    setNitionData={setNitionData}
+    data1={data1}
+    setDataShow={setDataShow}
+    setTwitterData={setTwitterData}
+    setInstagramData={setInstagramData}
+    setTextData={setTextData}
+  />
+
+  <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+    {/* Header */}
+    <div className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 lg:p-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
-              {renderContent()}
+        {/* IMPORTANT: relative container */}
+        <div className="relative flex items-center">
+
+          {/* Centered Title */}
+          <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              {getDisplayTitle()}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {getDisplaySubtitle()}
+            </p>
+          </div>
+
+          {/* Right-side Buttons */}
+          <div className="ml-auto flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div onClick={share}>
+              <ButtonUi
+                variant="secondary"
+                size="lg"
+                startIcon={<ShareIcon />}
+              >
+                Share
+              </ButtonUi>
+            </div>
+
+            <div>
+              <ButtonUi
+                variant="primary"
+                size="lg"
+                startIcon={<PlusIcon />}
+                onClick={() => setModal(!modal)}
+              >
+                Add Content
+              </ButtonUi>
             </div>
           </div>
+
         </div>
       </div>
-      
-      {modal && <Modal onClick={()=> setModal(!modal)} setModal={setModal} setReloadData={()=> setReloadData(!reloadData)}/>}
-    </div> 
+    </div>
+
+    {/* Content Area */}
+    <div className="flex-1 overflow-auto">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {modal && (
+    <Modal
+      onClick={() => setModal(!modal)}
+      setModal={setModal}
+      setReloadData={() => setReloadData(!reloadData)}
+    />
+  )}
+</div>
+
   )
 }
 

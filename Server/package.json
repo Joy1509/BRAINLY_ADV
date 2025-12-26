@@ -10,7 +10,8 @@
     "start": "node dist/app.js",
     "migrate:tags": "ts-node src/scripts/migrateTags.ts",
     "backfill:summaries": "ts-node src/scripts/backfillSummaries.ts",
-    "playwright:install": "npx playwright install --with-deps"
+    "playwright:install": "npx playwright install --with-deps",
+    "test:text": "ts-node src/scripts/testTextContent.ts"
   },
   "keywords": [],
   "author": "",

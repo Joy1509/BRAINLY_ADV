@@ -163,10 +163,32 @@ async function generateSummary(url: string): Promise<string | undefined> {
 
 export const newContent = async(req: AuthRequest,res: Response)=>{
   try{
-    const {link,contentType,title,tag,tags} = req.body;
+    const {link,contentType,title,tag,tags,text} = req.body;
     const userid = req.userID; 
 
-    //checking whether user given all the field or not
+    // For Text entries, 'text' is required (link is optional)
+    if (contentType === 'Text') {
+      if (!title || !text || !userid) {
+        res.status(400).json({ message: "Title and text are required for Text content" });
+        return;
+      }
+      const contentCreated = new userContent({
+        link: link || '',
+        contentType: contentType,
+        title: title,
+        text: text,
+        tag: tag || (Array.isArray(tags) && tags.length > 0 ? tags[0] : undefined),
+        tags: Array.isArray(tags) ? tags : (tag ? [tag] : []),
+        summary: "", // no summary for Text entries
+        userId: userid
+      });
+
+      await contentCreated.save();
+      res.status(200).json({ message: "Text content saved Successfully" });
+      return;
+    }
+
+    // Non-text entries: link + title required
     if (!link || !contentType || !title || !userid) {
       res.status(400).json({ message: "All fields are required" });
       return;
@@ -195,6 +217,7 @@ export const newContent = async(req: AuthRequest,res: Response)=>{
     return;
   }catch(err){
     console.log("Err(catch): something went wrong",err)
+    res.status(500).json({ message: 'Server error' });
     return;
   }
 }

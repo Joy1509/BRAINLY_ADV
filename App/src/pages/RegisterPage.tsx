@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useNotification } from "../components/NotificationUi/NotificationProvider";
 import Spinner from "../components/Spinner/Spinner";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const STORAGE_KEYS = {
   TOKEN: "token",
   USER_ID: "userId"

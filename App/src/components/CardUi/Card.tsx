@@ -10,8 +10,9 @@ import TwitterIcon from "../icons/TwitterIcon";
 import { useNotification } from "../NotificationUi/NotificationProvider";
 
 interface CardProps {
-  icon: "Youtube" | "Twitter" | "Notion" | "Instagram";
+  icon: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text";
   tag: string | string[];
+  summary?: string;
   title: string;
   link: string;
   reload?: () => void;
@@ -90,6 +91,16 @@ const Card = memo((props: CardProps) => {
               <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 fill-current text-pink-600" viewBox="0 0 24 24"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm5 4.25A4.75 4.75 0 1 1 7.25 11 4.75 4.75 0 0 1 12 6.25zm5.4-.9a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
             </div>
           </a>
+        </div>
+      );
+    }
+
+    if (props.icon === "Text") {
+      return (
+        <div className="w-full h-full flex items-center justify-center p-4">
+          <div className="w-full h-full bg-yellow-50 rounded-lg p-3 flex items-start">
+            <p className="text-sm text-gray-700 line-clamp-4">{props.summary}</p>
+          </div>
         </div>
       );
     }

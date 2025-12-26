@@ -12,6 +12,20 @@ try{
      res.status(400).json({ message: "All fields are required" });
      return;
   }
+
+  // server-side validation: email format and password strength
+  const emailRegex = /^\S+@\S+\.\S+$/;
+  const passwordRegex = /(?=.*[A-Z])(?=.*\d).{6,}/; // at least one uppercase, one digit, min length 6
+
+  if (!emailRegex.test(email)) {
+    res.status(400).json({ message: "Invalid email format" });
+    return;
+  }
+
+  if (!passwordRegex.test(password)) {
+    res.status(400).json({ message: "Password must include at least one uppercase letter, one number, and be at least 6 characters long" });
+    return;
+  }
   
   //checking is email already exist or not 
   const checkEmail =await user.findOne({
@@ -61,6 +75,13 @@ export const login = async(req: Request,res: Response)=>{
       return;
     }
 
+    // basic email format validation
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ message: "Invalid email format" });
+      return;
+    }
+
     //checking whether the email exsist or not
     const User =await user.findOne({
       email: email
@@ -80,11 +101,10 @@ export const login = async(req: Request,res: Response)=>{
 
     //generating token
     if(!process.env.SECRET_KEY){
-      throw new Error("Vlaue not available");
+      throw new Error("SECRET_KEY not available");
     }
-    const token = jwt.sign({userID:User._id},process.env.SECRET_KEY, {
-      expiresIn: '1h'
-    });
+    const secret = process.env.SECRET_KEY as string;
+    const token = jwt.sign({userID:User._id}, secret, { expiresIn: 60 * 60 });
     // res.cookie("token",token, {
     //   httpOnly: true,
     //   secure: false,       

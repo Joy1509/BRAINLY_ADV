@@ -1,0 +1,1 @@
+// PasswordReset model removed — OTPs are now stored in an httpOnly cookie (short-lived JWT).

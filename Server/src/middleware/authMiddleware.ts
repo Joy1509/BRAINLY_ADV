@@ -27,7 +27,8 @@ export const isAuthenticated = async(req: AuthRequest,res: Response,next: NextFu
     })
     return;
   }
-  const decoded = jwt.verify(token, process.env.SECRET_KEY) as unknown as { userID: Types.ObjectId };
+  const secret = process.env.SECRET_KEY as string;
+  const decoded = jwt.verify(token, secret) as { userID: Types.ObjectId };
   req.userID = decoded.userID;
   next();
   }catch(err){

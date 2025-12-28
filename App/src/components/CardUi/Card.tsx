@@ -1,6 +1,8 @@
 import DocumentIcon from "../icons/DocumentIcon";
 import NotionIcon from "../icons/NotionIcon";
 import DeleteIcon from "../icons/DeleteIcon";
+import InstagramIcon from "../icons/InstagramIcon";
+import YoutubeIcon from "../icons/YoutubeIcon";
 import Tags from "./Tags";
 import DetailModal from "./DetailModal";
 import { format } from "date-fns";
@@ -50,6 +52,23 @@ const Card = memo((props: CardProps) => {
   // ✅ Memoized JSX
   const [showDetail, setShowDetail] = useState(false);
 
+  // ✅ Memoized header icon
+  const headerIcon = useMemo(() => {
+    switch (props.icon) {
+      case "Youtube":
+        return <YoutubeIcon />;
+      case "Twitter":
+        return <TwitterIcon />;
+      case "Instagram":
+        return <InstagramIcon />;
+      case "Notion":
+        return <NotionIcon />;
+      case "Text":
+      default:
+        return <DocumentIcon />;
+    }
+  }, [props.icon]);
+
   const contentPreview: JSX.Element = useMemo(() => {
     if (props.icon === "Youtube") {
       return (
@@ -88,7 +107,7 @@ const Card = memo((props: CardProps) => {
         <div className="w-full h-full flex items-center justify-center">
           <a href={props.link} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full h-full">
             <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center hover:bg-pink-200 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 fill-current text-pink-600" viewBox="0 0 24 24"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm5 4.25A4.75 4.75 0 1 1 7.25 11 4.75 4.75 0 0 1 12 6.25zm5.4-.9a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+              <InstagramIcon />
             </div>
           </a>
         </div>
@@ -155,7 +174,7 @@ const Card = memo((props: CardProps) => {
         <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="flex-shrink-0 w-6 h-6 text-blue-600">
-              <DocumentIcon />
+              {headerIcon}
             </div>
             <h3 className="font-medium text-gray-800 truncate text-sm">{props.title}</h3>
           </div>

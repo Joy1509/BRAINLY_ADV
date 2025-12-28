@@ -1,6 +1,11 @@
 import { useRef, useState, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../NotificationUi/NotificationProvider";
+import DocumentIcon from "../icons/DocumentIcon";
+import YoutubeIcon from "../icons/YoutubeIcon";
+import TwitterIcon from "../icons/TwitterIcon";
+import InstagramIcon from "../icons/InstagramIcon";
+import NotionIcon from "../icons/NotionIcon";
 
 interface ModalProps {
   onClick: () => void;
@@ -205,13 +210,15 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
                 >
                   {/* small icon per type */}
                   {cat === 'Text' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm2 3v2h10V6H7zm0 4v2h10v-2H7z"/></svg>
+                    <div className="w-4 h-4"><DocumentIcon /></div>
                   ) : cat === 'Youtube' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M10 15l5-3-5-3v6z"/><path d="M21 7s-.2-1.4-.8-2c-.8-.8-1.8-.8-2.2-.9C14 3.9 12 3.9 12 3.9h0s-2 0-5 0c-.4 0-1.4.1-2.2.1C3.2 4 3 5.1 3 5.1S3 6.6 3 8.2v.6C3 10.9 3 12 3 12s0 1.1 0 2.2v.6C3 17.4 3 18 3 18s.2 1.1.8 1.8c.8.8 1.8.8 2.2.9 1.6.2 6.2.2 6.2.2s2 0 5 0c.4 0 1.4-.1 2.2-.1.6-.1.8-1 .8-1.8v-1.2c0-1.1 0-2.2 0-2.2s0-1.1 0-2.2V8.2C21 6.6 21 5.1 21 5.1z"/></svg>
+                    <div className="w-4 h-4"><YoutubeIcon /></div>
                   ) : cat === 'Twitter' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53A4.48 4.48 0 0 0 22.4.36a9.03 9.03 0 0 1-2.88 1.1A4.52 4.52 0 0 0 16.11 0c-2.5 0-4.52 2.03-4.52 4.52 0 .35.04.7.11 1.03C7.69 5.38 4.07 3.57 1.64.88A4.5 4.5 0 0 0 1 3.14c0 1.57.8 2.95 2.02 3.75A4.5 4.5 0 0 1 .96 6v.06c0 2.2 1.57 4.04 3.65 4.46a4.52 4.52 0 0 1-2.04.08c.58 1.8 2.26 3.11 4.25 3.15A9.06 9.06 0 0 1 0 19.54a12.8 12.8 0 0 0 6.92 2.02c8.3 0 12.85-6.88 12.85-12.85l-.01-.58A9.22 9.22 0 0 0 23 3z"/></svg>
+                    <div className="w-4 h-4"><TwitterIcon /></div>
                   ) : cat === 'Instagram' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-pink-500" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm5 4.25A4.75 4.75 0 1 1 7.25 11 4.75 4.75 0 0 1 12 6.25zm5.4-.9a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>
+                    <div className="w-4 h-4"><InstagramIcon /></div>
+                  ) : cat === 'Notion' ? (
+                    <div className="w-4 h-4"><NotionIcon /></div>
                   ) : (
                     <span className="w-4 h-4" />
                   )}

@@ -3,6 +3,8 @@ import NavFields from "./NavFields";
 import TwitterIcon from "../icons/TwitterIcon";
 import YoutubeIcon from "../icons/YoutubeIcon";
 import NotionIcon from "../icons/NotionIcon";
+import InstagramIcon from "../icons/InstagramIcon";
+import DocumentIcon from "../icons/DocumentIcon";
 import All from "../icons/All";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../NotificationUi/NotificationProvider";
@@ -161,9 +163,9 @@ const SideNavbar = memo((props: SideNavbarProps) => {
               <NavFields textt="Twitter" startIcon={<TwitterIcon />} />
             </div>
             <div onClick={showInstagram}>
-              <NavFields textt="Instagram" startIcon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm5 6.5A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5zm5.5-3a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z"/></svg>} />
+              <NavFields textt="Instagram" startIcon={<InstagramIcon width="20px" height="20px" />} />
             </div>            <div onClick={showText}>
-              <NavFields textt="Notes" startIcon={<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm2 3v2h10V6H7zm0 4v2h10v-2H7z"/></svg>} />
+              <NavFields textt="Notes" startIcon={<DocumentIcon width="20px" height="20px" />} />
             </div>            <div onClick={showNotion}>
               <NavFields textt="Notion" startIcon={<NotionIcon />} />
             </div>

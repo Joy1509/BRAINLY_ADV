@@ -6,9 +6,9 @@ import NotionIcon from "../icons/NotionIcon";
 import InstagramIcon from "../icons/InstagramIcon";
 import DocumentIcon from "../icons/DocumentIcon";
 import All from "../icons/All";
+import { useState, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../NotificationUi/NotificationProvider";
-import { useState, useMemo, useCallback, memo } from "react";
 
 /* ---------- TYPES ---------- */
 
@@ -97,88 +97,75 @@ const SideNavbar = memo((props: SideNavbarProps) => {
     props.setDataShow("All");
   }, [props]);
 
-  const handleSignOut = useCallback(async () => {
-    const confirmed = await showConfirm(
-      "Sign Out",
-      "Are you sure you want to sign out?",
-      "warning"
-    );
-
-    if (!confirmed) return;
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    showNotification("success", "Signed out successfully");
-    navigate("/");
-  }, [navigate, showConfirm, showNotification]);
-
   /* ---------- UI ---------- */
   return (
     <>
-      {/* Hamburger button (always visible) */}
+      {/* Hamburger button */}
       <button
         onClick={() => setIsOpen(v => !v)}
-        className="fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200"
+        className="fixed top-4 left-4 z-50 p-2 dark:bg-[#1a1a2e] bg-white rounded-xl dark:border-white/10 border-gray-200 border shadow-lg dark:hover:bg-white/10 hover:bg-gray-100 transition-all"
         aria-expanded={isOpen}
         aria-label="Toggle sidebar"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 dark:text-white text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={() => setIsOpen(false)} />
       )}
 
-      <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 h-screen bg-white border-r border-gray-200 transform transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
+      <div className={`fixed inset-y-0 left-0 z-40 w-64 h-screen dark:bg-[#13131f] bg-white dark:border-white/5 border-gray-200 border-r transform transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex flex-col h-full">
+
           {/* Header */}
-          <div className="pt-16 p-6 border-b">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <AppLogo />
-              </div>
-              <div>
-                <span className="text-xl font-bold">Second Brain</span>
-                <p className="text-xs text-gray-500">Knowledge Management</p>
+          <div className="pt-12 dark:border-white/5 border-gray-100 border-b">
+            <div className="flex items-center ml-9 gap-10">
+              <img src="/Brainly.png" alt="Second Brain" className="pt-4 pr-2 w-16 h-16 object-contain -mr-2 mb-4" />
+              <div className="-ml-8">
+                <span className="text-base font-bold dark:text-white text-gray-900">Second Brain</span>
+                <p className="text-xs dark:text-white/40 text-gray-400">Knowledge Hub</p>
               </div>
             </div>
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 p-4 space-y-1">
-            <div onClick={showAll}>
-              <NavFields textt="All Content" startIcon={<All />} />
-            </div>
-            <div onClick={showYoutube}>
-              <NavFields textt="YouTube" startIcon={<YoutubeIcon />} />
-            </div>
-            <div onClick={showTwitter}>
-              <NavFields textt="Twitter" startIcon={<TwitterIcon />} />
-            </div>
-            <div onClick={showInstagram}>
-              <NavFields textt="Instagram" startIcon={<InstagramIcon width="20px" height="20px" />} />
-            </div>            <div onClick={showText}>
-              <NavFields textt="Notes" startIcon={<DocumentIcon width="20px" height="20px" />} />
-            </div>            <div onClick={showNotion}>
-              <NavFields textt="Notion" startIcon={<NotionIcon />} />
-            </div>
+          <nav className="flex-1 pr-3 pb-3 pl-3 pt-1 space-y-1 overflow-y-auto">
+            {[
+              { label: 'All Content', icon: <All />, action: showAll },
+              { label: 'YouTube', icon: <YoutubeIcon />, action: showYoutube },
+              { label: 'Twitter', icon: <TwitterIcon />, action: showTwitter },
+              { label: 'Instagram', icon: <InstagramIcon width="20px" height="20px" />, action: showInstagram },
+              { label: 'Notes', icon: <DocumentIcon width="20px" height="20px" />, action: showText },
+              { label: 'Notion', icon: <NotionIcon />, action: showNotion },
+            ].map(({ label, icon, action }) => (
+              <div key={label} onClick={() => { action(); setIsOpen(false); }}>
+                <NavFields textt={label} startIcon={icon} />
+              </div>
+            ))}
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t">
+          <div className="p-3 dark:border-white/5 border-gray-100 border-t space-y-2">
             <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+              onClick={async () => {
+                const confirmed = await showConfirm("Sign Out", "Are you sure you want to sign out?", "warning");
+                if (!confirmed) return;
+                localStorage.removeItem("token");
+                localStorage.removeItem("userId");
+                localStorage.removeItem("username");
+                showNotification("success", "Signed out successfully");
+                navigate("/");
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl dark:bg-red-500/10 dark:hover:bg-red-500/15 dark:border-red-500/20 dark:text-red-400 bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 text-sm font-medium transition-all"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
               Sign Out
             </button>
+            <p className="text-xs dark:text-white/20 text-gray-400 text-center">Second Brain © 2025</p>
           </div>
         </div>
       </div>

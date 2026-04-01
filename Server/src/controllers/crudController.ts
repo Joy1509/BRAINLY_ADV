@@ -1,10 +1,13 @@
 import { AuthRequest } from "../middleware/authMiddleware";
 import { Response } from "express";
 import userContent from "../models/contentModel";
+import Share from "../models/shareModel";
 import cheerio from "cheerio";
 import path from 'path';
 import util from 'util';
 import { execFile } from 'child_process';
+import { fetchYouTubeMetadata, generateAISummary } from '../utils/youtubeEnhancer';
+import { fetchNotionMetadata, generateNotionSummary } from '../utils/notionFetcher';
 const execFileP = util.promisify(execFile);
 
 async function generateSummary(url: string): Promise<string | undefined> {
@@ -194,20 +197,41 @@ export const newContent = async(req: AuthRequest,res: Response)=>{
       return;
     }
 
-    // Try to generate a summary for the link (best-effort)
-    const summary = link ? await generateSummary(link) : undefined;
+    let summary = "";
+    let metadata = {};
+
+    if (contentType === 'Youtube') {
+      const ytMetadata = await fetchYouTubeMetadata(link);
+      if (ytMetadata) {
+        summary = await generateAISummary(ytMetadata);
+        metadata = {
+          channelName: ytMetadata.channelName || "",
+          duration: ytMetadata.duration || "",
+          viewCount: ytMetadata.viewCount || "",
+          publishedAt: ytMetadata.publishedAt || ""
+        };
+      }
+    } else if (contentType === 'Instagram' || contentType === 'Twitter') {
+      // Use user-provided description directly, no auto-fetching
+      summary = req.body.summary || "";
+    } else if (contentType === 'Notion') {
+      const notionMetadata = await fetchNotionMetadata(link);
+      if (notionMetadata) {
+        summary = await generateNotionSummary(notionMetadata);
+      }
+    } else {
+      summary = (await generateSummary(link)) || "";
+    }
 
     const contentCreated = new userContent({
-      link:link,
-      contentType:contentType,
-      title:title,
-      // Keep legacy `tag` (first tag) for compatibility
+      link,
+      contentType,
+      title,
       tag: tag || (Array.isArray(tags) && tags.length > 0 ? tags[0] : undefined),
-      // Persist all tags as an array
       tags: Array.isArray(tags) ? tags : (tag ? [tag] : []),
-      // optional summary
-      summary: summary || "",
-      userId:userid
+      summary,
+      metadata,
+      userId: userid
     })
 
     await contentCreated.save();
@@ -247,29 +271,25 @@ export const content = async(req: AuthRequest, res: Response)=>{
 export const deleteContent = async(req: AuthRequest, res: Response)=>{
   try{
     const userid = req.userID;
-    const userTitle = req.params.contentId;
-    
-    console.log("userid =>", userid)
-    console.log("contentid =>", userTitle)
+    const contentId = req.params.contentId;
 
-    if (!userid || !userTitle) {
+    if (!userid || !contentId) {
        res.status(400).json({ message: "User ID or Content ID missing" });
        return;
     }
 
-    const content = await userContent.findOne({ title: userTitle, userId: userid });
+    const deleted = await userContent.findOneAndDelete({ _id: contentId, userId: userid });
 
-    if (!content) {
+    if (!deleted) {
       res.status(404).json({ message: "Content not found or unauthorized" });
       return;
     }
 
-    await userContent.findByIdAndDelete(content);
-
-     res.status(200).json({ message: "Content deleted successfully" });
-     return;
+    res.status(200).json({ message: "Content deleted successfully" });
+    return;
   }catch(err){
     console.log("Err(catch): something went wrong",err)
+    res.status(500).json({ message: 'Server error' });
     return;
   }
 }
@@ -279,6 +299,90 @@ export const shareContent = async(req: AuthRequest, res: Response)=>{
   try {
     const documents = await userContent.find({ userId });
     res.status(200).json({ data: documents });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// Create short share link
+export const createShareLink = async(req: AuthRequest, res: Response)=>{
+  try {
+    const userId = req.userID;
+    if (!userId) {
+      res.status(400).json({ message: "User ID required" });
+      return;
+    }
+    
+    const shareId = Math.random().toString(36).substring(2, 15);
+    
+    // Save share record
+    const shareRecord = new Share({
+      shareId,
+      userId
+    });
+    await shareRecord.save();
+    
+    const shareUrl = `http://localhost:5173/share/${shareId}`;
+    
+    res.status(200).json({ shareUrl, shareId });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// Get shared content by share ID
+export const getSharedContent = async(req: any, res: Response)=>{
+  try {
+    const { shareId } = req.params;
+    
+    const shareRecord = await Share.findOne({ shareId });
+    if (!shareRecord) {
+      res.status(404).json({ message: 'Share not found or expired' });
+      return;
+    }
+    
+    const documents = await userContent.find({ userId: shareRecord.userId });
+    res.status(200).json({ data: documents });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// Get profile info + stats
+export const getProfile = async(req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userID;
+    if (!userId) { res.status(400).json({ message: 'User ID required' }); return; }
+
+    const [userData, allContent] = await Promise.all([
+      (await import('../models/userModel')).default.findById(userId).select('username email avatar provider createdAt'),
+      userContent.find({ userId })
+    ]);
+
+    if (!userData) { res.status(404).json({ message: 'User not found' }); return; }
+
+    const stats = allContent.reduce((acc: Record<string, number>, item) => {
+      const type = item.contentType as string;
+      if (type) acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const tagFreq = allContent.flatMap((item: any) => (item.tags as string[]) || []).reduce((acc: Record<string, number>, tag: string) => {
+      acc[tag] = (acc[tag] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const topTags = (Object.entries(tagFreq) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([tag]) => tag);
+
+    res.status(200).json({
+      username: userData.username,
+      email: userData.email,
+      avatar: userData.avatar || '',
+      provider: userData.provider || 'local',
+      memberSince: (userData as any).createdAt || null,
+      totalItems: allContent.length,
+      stats,
+      topTags
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

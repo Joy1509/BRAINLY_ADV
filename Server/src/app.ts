@@ -5,15 +5,17 @@ import cors from "cors";
 import router from "./routes/pageRoutes";
 import dbConnect from "./config/db";
 import cookieParser from 'cookie-parser';
+import passport from './controllers/oauthController';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true}))
 app.use(cors({
-  origin: "http://localhost:5173", 
+  origin: true,
   credentials: true 
 }));
 app.use(cookieParser());
+app.use(passport.initialize());
 dbConnect();
 
 app.use("/api/v1",router);

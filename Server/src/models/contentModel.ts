@@ -12,8 +12,15 @@ const contentSchema = new mongoose.Schema({
   tags: { type: [String], default: [] },
   // auto-generated link summary (optional)
   summary: { type: String, default: "" },
+  // YouTube-specific metadata
+  metadata: {
+    channelName: { type: String, default: "" },
+    duration: { type: String, default: "" },
+    viewCount: { type: String, default: "" },
+    publishedAt: { type: String, default: "" }
+  },
   userId: {type: Types.ObjectId, ref: 'User', require: true}
-})
+}, { timestamps: true })
 
 const userContent = mongoose.model("content",contentSchema);
 export default userContent;

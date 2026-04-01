@@ -26,6 +26,7 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
   const [showCustomTag, setShowCustomTag] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [textLength, setTextLength] = useState(0);
+  const [instaDescription, setInstaDescription] = useState("");
   const TEXT_MAX = 4000;
 
   const categories = useMemo(() => ["Youtube", "Twitter", "Notion", "Instagram", "Text"] as const, []);
@@ -110,6 +111,7 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
         tags: selectedTags, // Send all tags for future use
       };
 
+      if (category === 'Instagram' || category === 'Twitter') bodyPayload.summary = instaDescription;
       if (category === 'Text') bodyPayload.text = textInput;
       else bodyPayload.link = link;
 
@@ -175,6 +177,21 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
                 placeholder="https://example.com"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              {(category === 'Instagram' || category === 'Twitter') && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {category === 'Instagram' ? 'Caption / Description' : 'Tweet Text'} <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <textarea
+                    placeholder={category === 'Instagram' ? 'Paste the Instagram caption or describe the post...' : 'Paste the tweet text here...'}
+                    value={instaDescription}
+                    onChange={(e) => setInstaDescription(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px] text-sm"
+                    maxLength={600}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{instaDescription.length}/600</p>
+                </div>
+              )}
             </div>
           ) : (
             <div>

@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 
 
 interface SharedContent {
-  contentType: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text";
+  contentType: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text" | "Voice";
   tag?: string | string[];
   tags?: string[];
   summary?: string;
   title: string;
   link: string;
+  audioUrl?: string;
 }
 
 const SharedPage = () => {
@@ -93,6 +94,7 @@ const SharedPage = () => {
                 summary={(item as any).summary}
                 title={item.title}
                 link={item.link}
+                audioUrl={(item as any).audioUrl}
                 isShared={true}
               />
             ))}

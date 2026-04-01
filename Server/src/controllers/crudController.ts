@@ -1,3 +1,4 @@
+import cloudinary from '../config/cloudinary';
 import { AuthRequest } from "../middleware/authMiddleware";
 import { Response } from "express";
 import userContent from "../models/contentModel";
@@ -387,6 +388,47 @@ export const getProfile = async(req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 }
+
+// Upload voice note to Cloudinary and save to MongoDB
+export const uploadVoiceNote = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userID;
+    if (!userId) { res.status(400).json({ message: 'User ID required' }); return; }
+
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) { res.status(400).json({ message: 'Audio file is required' }); return; }
+
+    const { title, tags, audioDuration } = req.body;
+    if (!title) { res.status(400).json({ message: 'Title is required' }); return; }
+
+    const parsedTags: string[] = (() => { try { return JSON.parse(tags); } catch { return []; } })();
+
+    const uploadResult = await new Promise<any>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'video', folder: 'second-brain/voice-notes', format: 'mp3' },
+        (error, result) => { if (error) reject(error); else resolve(result); }
+      );
+      stream.end(file.buffer);
+    });
+
+    const content = new userContent({
+      title,
+      contentType: 'Voice',
+      audioUrl: uploadResult.secure_url,
+      audioDuration: parseFloat(audioDuration) || uploadResult.duration || 0,
+      tags: parsedTags,
+      tag: parsedTags[0] || '',
+      link: '',
+      userId,
+    });
+    await content.save();
+
+    res.status(200).json({ message: 'Voice note saved successfully' });
+  } catch (error) {
+    console.error('uploadVoiceNote error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 // Export generateSummary for maintenance scripts (e.g., to backfill existing documents)
 export { generateSummary, fetchYouTubeDescription, fetchTwitterSummary, fetchNotionSummary, fetchInstagramSummary };

@@ -12,12 +12,14 @@ import TwitterIcon from "../icons/TwitterIcon";
 import { useNotification } from "../NotificationUi/NotificationProvider";
 
 interface CardProps {
-  icon: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text";
+  icon: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text" | "Voice";
   tag: string | string[];
   summary?: string;
   title: string;
   link: string;
   id?: string;
+  audioUrl?: string;
+  audioDuration?: number;
   createdAt?: string;
   reload?: () => void;
   isShared?: boolean;
@@ -59,6 +61,7 @@ const Card = memo((props: CardProps) => {
       case "Twitter": return <TwitterIcon />;
       case "Instagram": return <InstagramIcon />;
       case "Notion": return <NotionIcon />;
+      case "Voice": return <svg xmlns="http://www.w3.org/2000/svg" className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 3a4 4 0 014 4v4a4 4 0 01-8 0V7a4 4 0 014-4z" /></svg>;
       default: return <DocumentIcon />;
     }
   }, [props.icon]);
@@ -68,7 +71,8 @@ const Card = memo((props: CardProps) => {
     Twitter: 'text-sky-400',
     Instagram: 'text-pink-400',
     Notion: 'dark:text-white/70 text-gray-500',
-    Text: 'text-amber-400'
+    Text: 'text-amber-400',
+    Voice: 'text-violet-400'
   };
 
   const previewBg: Record<string, string> = {
@@ -76,7 +80,8 @@ const Card = memo((props: CardProps) => {
     Twitter: 'dark:bg-sky-500/5 bg-sky-50',
     Instagram: 'dark:bg-pink-500/5 bg-pink-50',
     Notion: 'dark:bg-white/3 bg-gray-50',
-    Text: 'dark:bg-amber-500/5 bg-amber-50'
+    Text: 'dark:bg-amber-500/5 bg-amber-50',
+    Voice: 'dark:bg-violet-500/5 bg-violet-50'
   };
 
   const contentPreview: JSX.Element = useMemo(() => {
@@ -116,6 +121,17 @@ const Card = memo((props: CardProps) => {
         <div className="w-full h-full flex items-center justify-center p-4">
           <div className="w-full h-full dark:bg-amber-500/10 bg-amber-50 rounded-lg p-3 flex items-start">
             <p className="text-sm dark:text-amber-200/70 text-amber-800 line-clamp-4">{props.summary}</p>
+          </div>
+        </div>
+      );
+    }
+    if (props.icon === "Voice") {
+      return (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-14 h-14 dark:bg-violet-500/15 bg-violet-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 3a4 4 0 014 4v4a4 4 0 01-8 0V7a4 4 0 014-4z" />
+            </svg>
           </div>
         </div>
       );
@@ -217,6 +233,8 @@ const Card = memo((props: CardProps) => {
           title={props.title} link={props.link}
           tags={Array.isArray(props.tag) ? props.tag : [props.tag as string]}
           summary={props.summary} icon={props.icon}
+          audioUrl={props.audioUrl}
+          isShared={props.isShared}
           onClose={() => setShowDetail(false)}
         />
       )}

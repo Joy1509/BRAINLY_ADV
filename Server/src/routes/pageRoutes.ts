@@ -1,15 +1,17 @@
 import  {Router}  from "express";
 import { registeration,login} from "../controllers/authController";
-import { newContent,content,deleteContent, shareContent, createShareLink, getSharedContent, getProfile } from "../controllers/crudController";
+import { newContent,content,deleteContent, shareContent, createShareLink, getSharedContent, getProfile, uploadVoiceNote } from "../controllers/crudController";
 import { isAuthenticated } from "../middleware/authMiddleware";
 import { forgotPassword, verifyOtp, resetPassword } from "../controllers/passwordController";
 import passport from '../controllers/oauthController';
 import { generateTokenAndRedirect } from '../controllers/oauthController';
+import upload from '../middleware/uploadMiddleware';
 
 const router = Router();
 
 router.get("/content",isAuthenticated,content)
 router.get("/profile",isAuthenticated,getProfile)
+router.post("/addvoice",isAuthenticated,upload.single('audio'),uploadVoiceNote)
 router.post("/signup",registeration)
 router.post("/signin",login)
 router.post("/addcontent",isAuthenticated,newContent)

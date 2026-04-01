@@ -9,11 +9,12 @@ import ShareModal from "../components/ShareModal/ShareModal";
 import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
 import AnimatedNavbar from "../components/AnimatedNavbar/AnimatedNavbar";
 import ChatBot from "../components/ChatBot/ChatBot";
+import ProfilePanel from "../components/ProfilePanel/ProfilePanel";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../components/NotificationUi/NotificationProvider";
 
 interface LocalContentItem {
-  contentType: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text";
+  contentType: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text" | "Voice";
   tag?: string | string[];
   tags?: string[];
   summary?: string;
@@ -35,8 +36,9 @@ const HomePage = ()=>{
   const [twitterData, setTwitterData] = useState<LocalContentItem[]>([]);
   const [instagramData, setInstagramData] = useState<LocalContentItem[]>([]);
   const [textData, setTextData] = useState<LocalContentItem[]>([]);
+  const [voiceData, setVoiceData] = useState<LocalContentItem[]>([]);
   const [dataShow, setDataShow] = useState("All");
-  const initial = (localStorage.getItem('username') || 'U').charAt(0).toUpperCase();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(()=>{
     fetchingData();
@@ -83,16 +85,18 @@ const HomePage = ()=>{
       case "Twitter": return "Social Posts";
       case "Instagram": return "Instagram";
       case "Text": return "Notes & Text";
+      case "Voice": return "Voice Notes";
       default: return "All Content";
     }
   };
 
   const getDisplaySubtitle = () => {
-    const count = dataShow === "All" ? data1.length : 
-                 dataShow === "Youtube" ? ytData.length : 
-                 dataShow === "Twitter" ? twitterData.length : 
-                 dataShow === "Instagram" ? instagramData.length : 
-                 dataShow === "Text" ? textData.length : notionData.length;
+    const count = dataShow === "All" ? data1.length :
+                 dataShow === "Youtube" ? ytData.length :
+                 dataShow === "Twitter" ? twitterData.length :
+                 dataShow === "Instagram" ? instagramData.length :
+                 dataShow === "Text" ? textData.length :
+                 dataShow === "Voice" ? voiceData.length : notionData.length;
     return `${count} items in your collection`;
   };
 
@@ -132,6 +136,8 @@ const HomePage = ()=>{
           title={item.title} 
           link={item.link}
           id={item._id}
+          audioUrl={(item as any).audioUrl}
+          audioDuration={(item as any).audioDuration}
           createdAt={item.createdAt}
           reload={() => setReloadData(!reloadData)}
         />
@@ -158,6 +164,8 @@ const HomePage = ()=>{
         return instagramData.length > 0 ? renderCards(instagramData) : emptyState("📸", "No Instagram content", "Save Instagram posts & reels to your brain!");
       case "Text":
         return textData.length > 0 ? renderCards(textData) : emptyState("📝", "No notes yet", "Add some typed notes or quick thoughts!");
+      case "Voice":
+        return voiceData.length > 0 ? renderCards(voiceData) : emptyState("🎙️", "No voice notes yet", "Record your first voice note!");
       default:
         return notionData.length > 0 ? renderCards(notionData) : emptyState("📝", "No documents", "Add some documents to organize your thoughts!");
     }
@@ -207,6 +215,7 @@ const HomePage = ()=>{
         setTwitterData={setTwitterData}
         setInstagramData={setInstagramData}
         setTextData={setTextData}
+        setVoiceData={setVoiceData}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -243,11 +252,11 @@ const HomePage = ()=>{
                   <PlusIcon /><span className="hidden sm:inline">Add Content</span>
                 </button>
                 <button
-                  onClick={() => navigate('/profile')}
+                  onClick={() => setProfileOpen(true)}
                   className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-violet-500/25 hover:scale-105 transition-all duration-200"
                   title="Profile"
                 >
-                  {initial}
+                  U
                 </button>
               </div>
             </div>
@@ -280,6 +289,7 @@ const HomePage = ()=>{
       )}
 
       <ChatBot />
+      {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
     </div>
   )
 }

@@ -1,18 +1,16 @@
 import mongoose, {Types} from "mongoose"
 
 const contentSchema = new mongoose.Schema({
-  link:{type: String,require: false}, // optional now to support Text content
+  link:{type: String,require: false},
   contentType: {type: String, require: true},
   title: {type: String, require: true},
-  // For text-based entries we persist the raw text here (optional)
   text: { type: String, default: "" },
-  // legacy single tag kept for backward compatibility
   tag: {type: String, require: false},
-  // store all tags as an array of strings
   tags: { type: [String], default: [] },
-  // auto-generated link summary (optional)
   summary: { type: String, default: "" },
-  // YouTube-specific metadata
+  // Voice note fields
+  audioUrl: { type: String, default: "" },
+  audioDuration: { type: Number, default: 0 },
   metadata: {
     channelName: { type: String, default: "" },
     duration: { type: String, default: "" },

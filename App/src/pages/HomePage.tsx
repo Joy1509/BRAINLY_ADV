@@ -12,6 +12,9 @@ import ChatBot from "../components/ChatBot/ChatBot";
 import ProfilePanel from "../components/ProfilePanel/ProfilePanel";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../components/NotificationUi/NotificationProvider";
+import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
+import InboxPanel from "../components/InboxPanel/InboxPanel";
 
 interface LocalContentItem {
   contentType: "Youtube" | "Twitter" | "Notion" | "Instagram" | "Text" | "Voice";
@@ -25,6 +28,10 @@ interface LocalContentItem {
 const HomePage = ()=>{
   const navigate = useNavigate();
   const { showNotification } = useNotification();
+  const { user, isAdmin, updateAvatar } = useAuth();
+  const { socket } = useSocket();
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxUnread, setInboxUnread] = useState(0);
   const [modal,setModal] = useState(false);
   const [shareModal, setShareModal] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
@@ -43,6 +50,34 @@ const HomePage = ()=>{
   useEffect(()=>{
     fetchingData();
   },[reloadData])
+
+  useEffect(() => {
+    const handler = () => setReloadData(prev => !prev);
+    window.addEventListener('brain:reload', handler);
+    return () => window.removeEventListener('brain:reload', handler);
+  }, []);
+
+  // Load initial unread count from DB
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/notifications/mine`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    }).then(r => r.json()).then(data => {
+      if (data.success) {
+        const total = data.notifications.reduce((acc: number, n: any) => acc + n.userUnread, 0);
+        setInboxUnread(total);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (n: any) => {
+      const lastMsg = n.messages?.[n.messages.length - 1];
+      if (lastMsg?.sender === 'admin') setInboxUnread(prev => prev + 1);
+    };
+    socket.on('notification_updated', handler);
+    return () => { socket.off('notification_updated', handler); };
+  }, [socket]);
 
   async function fetchingData(){
     try{
@@ -240,6 +275,26 @@ const HomePage = ()=>{
               <div className="ml-auto flex gap-2 items-center">
                 <ThemeToggle />
                 <button
+                  onClick={() => { setInboxOpen(v => !v); setInboxUnread(0); }}
+                  className="relative w-9 h-9 flex items-center justify-center rounded-xl dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-white/70 dark:hover:text-white bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-600 hover:text-gray-900 transition-all duration-200"
+                  title="Inbox"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  {inboxUnread > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">{inboxUnread}</span>
+                  )}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-sm font-medium shadow-lg shadow-amber-500/25 transition-all duration-200"
+                  >
+                    <span className="text-sm">👑</span><span className="hidden sm:inline">Admin</span>
+                  </button>
+                )}
+                <button
                   onClick={share}
                   className="flex items-center gap-2 px-3 py-2 rounded-xl dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-white/70 dark:hover:text-white bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-600 hover:text-gray-900 text-sm font-medium transition-all duration-200"
                 >
@@ -253,10 +308,13 @@ const HomePage = ()=>{
                 </button>
                 <button
                   onClick={() => setProfileOpen(true)}
-                  className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-violet-500/25 hover:scale-105 transition-all duration-200"
+                  className="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-violet-500/25 hover:scale-105 transition-all duration-200"
                   title="Profile"
                 >
-                  U
+                  {user?.avatar
+                    ? <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                    : user?.username?.charAt(0).toUpperCase() || 'U'
+                  }
                 </button>
               </div>
             </div>
@@ -290,6 +348,7 @@ const HomePage = ()=>{
 
       <ChatBot />
       {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
+      {inboxOpen && <InboxPanel onClose={() => setInboxOpen(false)} />}
     </div>
   )
 }

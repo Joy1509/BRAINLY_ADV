@@ -49,6 +49,8 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [transcript, setTranscript] = useState("");
+  const recognitionRef = useRef<any>(null);
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -89,6 +91,24 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
       setRecording(true);
       setRecordSeconds(0);
       timerRef.current = window.setInterval(() => setRecordSeconds(s => s + 1), 1000);
+
+      // Start Web Speech API transcription
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        let fullTranscript = '';
+        recognition.onresult = (e: any) => {
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) fullTranscript += e.results[i][0].transcript + ' ';
+          }
+          setTranscript(fullTranscript.trim());
+        };
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
     } catch {
       showNotification("error", "Microphone access denied");
     }
@@ -96,6 +116,7 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
+    recognitionRef.current?.stop();
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setAudioDuration(recordSeconds);
     setRecording(false);
@@ -107,6 +128,7 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
     setAudioUrl(null);
     setRecordSeconds(0);
     setAudioDuration(0);
+    setTranscript("");
   }, [audioUrl]);
 
   // ── SUBMIT ──
@@ -137,6 +159,7 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
         form.append("title", title);
         form.append("tags", JSON.stringify(selectedTags));
         form.append("audioDuration", String(audioDuration));
+        if (transcript) form.append("transcript", transcript);
 
         const res = await fetch(`${API_BASE_URL}/api/v1/addvoice`, {
           method: "POST",
@@ -260,6 +283,11 @@ const Modal = memo(({ onClick, setModal, setReloadData }: ModalProps) => {
                     <p className="text-xs dark:text-white/30 text-gray-400">
                       {recording ? "Recording… click to stop" : "Click to start recording"}
                     </p>
+                    {recording && transcript && (
+                      <div className="w-full dark:bg-white/5 bg-gray-100 rounded-lg px-3 py-2">
+                        <p className="text-xs dark:text-white/40 text-gray-500 italic line-clamp-3">{transcript}</p>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>

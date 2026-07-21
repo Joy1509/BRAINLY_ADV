@@ -398,7 +398,7 @@ export const uploadVoiceNote = async (req: AuthRequest, res: Response) => {
     const file = (req as any).file as Express.Multer.File | undefined;
     if (!file) { res.status(400).json({ message: 'Audio file is required' }); return; }
 
-    const { title, tags, audioDuration } = req.body;
+    const { title, tags, audioDuration, transcript } = req.body;
     if (!title) { res.status(400).json({ message: 'Title is required' }); return; }
 
     const parsedTags: string[] = (() => { try { return JSON.parse(tags); } catch { return []; } })();
@@ -411,6 +411,41 @@ export const uploadVoiceNote = async (req: AuthRequest, res: Response) => {
       stream.end(file.buffer);
     });
 
+    // Generate summary from transcript if available
+    let summary = '';
+    if (transcript && transcript.trim() && process.env.OPENROUTER_API_KEY) {
+      try {
+        const prompt = `Summarize this voice note in 2-3 clear sentences. Only return the summary, no extra text.
+
+Title: ${title}
+Transcript: ${transcript.slice(0, 2000)}`;
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'http://localhost:5000',
+            'X-Title': 'Second Brain'
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-3.1-8b-instruct:free',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 150,
+            temperature: 0.5
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          summary = data.choices?.[0]?.message?.content?.trim() || transcript.slice(0, 500);
+        }
+      } catch (err) {
+        console.warn('Voice summary generation failed:', (err as any).message || err);
+        summary = transcript.slice(0, 500);
+      }
+    } else if (transcript) {
+      summary = transcript.slice(0, 500);
+    }
+
     const content = new userContent({
       title,
       contentType: 'Voice',
@@ -419,6 +454,7 @@ export const uploadVoiceNote = async (req: AuthRequest, res: Response) => {
       tags: parsedTags,
       tag: parsedTags[0] || '',
       link: '',
+      summary,
       userId,
     });
     await content.save();

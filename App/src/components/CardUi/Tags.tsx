@@ -15,7 +15,7 @@ const Tags = (props: TagsProps) => {
     "Finance": "dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20 bg-emerald-100 text-emerald-700 border-emerald-200",
   };
 
-  const colorClass = tagColors[props.tagType] || "dark:bg-white/8 dark:text-white/50 dark:border-white/10 bg-gray-100 text-gray-600 border-gray-200";
+  const colorClass = tagColors[props.tagType] || "dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30 bg-gray-100 text-gray-600 border-gray-200";
 
   return (
     <div className={`px-2 py-0.5 text-xs font-medium rounded-full border ${colorClass} whitespace-nowrap`}>

@@ -1,15 +1,18 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useNotification } from "../components/NotificationUi/NotificationProvider";
+import { useAuth } from "../context/AuthContext";
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showNotification } = useNotification();
+  const { login } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get("token");
     const userId = searchParams.get("userId");
+    const role = searchParams.get("role") || 'user';
     const error = searchParams.get("error");
 
     if (error || !token || !userId) {
@@ -18,10 +21,16 @@ const OAuthCallback = () => {
       return;
     }
 
-    localStorage.setItem("token", token);
-    localStorage.setItem("userId", userId);
+    // Get username from localStorage or use default
+    const username = localStorage.getItem("username") || "User";
+    
+    const avatar = searchParams.get("avatar") || '';
+    
+    login(token, userId, username, role, avatar);
+    
+    const redirectTo = role === 'admin' ? '/admin' : '/home';
     showNotification("success", "Logged in successfully!");
-    navigate("/home");
+    navigate(redirectTo);
   }, []);
 
   return (

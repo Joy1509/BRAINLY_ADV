@@ -104,7 +104,7 @@ export const login = async(req: Request,res: Response)=>{
       throw new Error("SECRET_KEY not available");
     }
     const secret = process.env.SECRET_KEY as string;
-    const token = jwt.sign({userID:User._id}, secret, { expiresIn: 60 * 60 });
+    const token = jwt.sign({userID:User._id, role: User.role}, secret, { expiresIn: 60 * 60 });
     // res.cookie("token",token, {
     //   httpOnly: true,
     //   secure: false,       
@@ -116,7 +116,9 @@ export const login = async(req: Request,res: Response)=>{
       message: "user logged in successfully",
       token,
       userID: User._id,
-      username: User.username
+      username: User.username,
+      role: User.role,
+      avatar: User.avatar || ''
     })
     return;
   }catch(err){

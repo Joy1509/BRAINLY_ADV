@@ -1,0 +1,84 @@
+{
+  "joy": {
+    "encrypted_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJY0gtNV95TjJxZnh2ZWtwb3FhenRRZDJUdzdud2l3NXRXSFJXM2pteUhHbzRPazRuNlhoWGg1eHBFQlpoWEVJR2ltb3lIOU9nNk5qUk1zRXlJZFZ5QURDQ2c9PQ==",
+      "salt": "R26IkNkoD/QjCLbO2Q5eVg=="
+    },
+    "original_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJY0gtYTlrdFk0NzN3RG1TaHBBSHJscVkxMkM4cUxZVFVVNFZZN25FeXdWYlpjOEc0N0x4a0hkTVhBUjE2OUx0c1ZPWkI0RFFqLUhHam5EbDhWT3d6ckxfQUE9PQ==",
+      "salt": "hvRz9fh875uhZL8jDLpaAQ=="
+    },
+    "registered_at": "2026-06-04T23:50:46.211450",
+    "login_attempts": 3,
+    "successful_logins": 1,
+    "last_successful_login": "2026-06-04T23:51:29.841052"
+  },
+  "blaze": {
+    "encrypted_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJY081VjhsVG94dkVlaFh1bGd0V1JuWmhhdlhzNzJrR3lFZFBwdU5GcGlMd3NxaEEwXzMyNDVtX3hOSWpnUEJUVVlKcmNUOWJ6clNKN05TeTd3dlVYdUowU2c9PQ==",
+      "salt": "xfY5cEr4GuMrwbbhAlan8g=="
+    },
+    "original_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJY081V2tTbVBDMEt6dGtMUms0cVladkpfM2VSMFhsUXJ4MHVtM3JPMHAyOFk2NU51di1UY1BGQ3M1SjNwNWstaU1sdjU4Nng4NEdRUDA4YkszTmptYkNsd1E9PQ==",
+      "salt": "r3kLvxIhXHa5yjUdy6nIdw=="
+    },
+    "registered_at": "2026-06-04T23:58:09.476137",
+    "login_attempts": 2,
+    "successful_logins": 1,
+    "last_successful_login": "2026-06-04T23:58:42.192289"
+  },
+  "jiji": {
+    "encrypted_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJZGlFWmstSGI1SW9rMGZrY2E4QW1xR0VTekNvaEV2SDF4b1A1QzUyT2JvcVIyZUxoQU5mR21ETkgtZFNDT2dfNlJ6Mk5UU21RNGpQTmtZellxaDZWMjc2X1E9PQ==",
+      "salt": "e8th8c7u1M1K3R7wcXIRfw=="
+    },
+    "original_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJZGlFQlFtdnZzNkxlM3pkbHVyT0ctbFdvNTVsOElWZjRqMU9vNGt3WGJKaWZ4aTlHZXVoNzJCNVdta3hXUXdyaXc5NHA3RnhnSjV3Qkh3dk0tRDhTMlJyN1E9PQ==",
+      "salt": "uVmgnOg+ySwMjQhnSsxwvw=="
+    },
+    "registered_at": "2026-06-05T01:26:52.308818",
+    "login_attempts": 0,
+    "successful_logins": 0
+  },
+  "voice": {
+    "encrypted_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJbmFHSTZ3SnFPOExETmFnRGhpdGp6TnJxU3BtLUFDVFpTeUVUQWoyalZxY0Zhb3pKSG9yeDJ5Nko3bEs0cEhmbnFVRGZaU1cwSUdoYjMtV00yTjVrdnpvVWc9PQ==",
+      "salt": "tG7vu732kIbrJwS7Q+fqRw=="
+    },
+    "original_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJbmFHYUFTUnB1cEd2TVdPTmJsV1dyRjRPUG5NUnRjSmt6a1BhMjlRUjc0MzJ6NkJCS2ZKUnRsMHpDZndfbWRrdEs3TDYyMDFEbnAxTDgzdWV2UXVDZFc0NUE9PQ==",
+      "salt": "XLStiBnjpF/yo55pW9rHQA=="
+    },
+    "registered_at": "2026-06-05T12:41:02.927582",
+    "login_attempts": 0,
+    "successful_logins": 0
+  },
+  "v2": {
+    "encrypted_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJbmdoQi1KMWNtdmtjdUIzSGdJVEE5RFRuaHZ4cjExVWpqUEJBRUZjdWVYQzBpNkY4bjZxSEFLeWdFWjAyMGlXb2gtUXBPdEdhQnVTNVlaeVVGWHd0OVBIRGc9PQ==",
+      "salt": "wz2h6+DAhK8+qiKpLXD/Ag=="
+    },
+    "original_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFJbmdoRE8tSXdQX05FU2pDNnBGOWViWkZWdVlnV2NwTFM1RjZaT2FqdWQxYXVPN3ctWDBVZl9TdUdvMmlNcW9rbmlTNFdCd2t5aFVYYVY5dFZFRmJUY2lHTkE9PQ==",
+      "salt": "AMfbTxN1l6I/nrENrAE9Yw=="
+    },
+    "registered_at": "2026-06-05T12:47:53.415844",
+    "login_attempts": 4,
+    "successful_logins": 2,
+    "last_successful_login": "2026-06-05T12:54:29.673409"
+  },
+  "maurya": {
+    "encrypted_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFKYi11QVl0LS1fQktnOXZkOUl1V0VGMk1ZR3h3NE9OeUlPbThsakxiX1paMldBSENFWno5ZnNkdmZMbXg0a213d3JjSzRORWFhd2ltRkxUamg4aWVvLXpIakE9PQ==",
+      "salt": "BsOVVF2lXJ9ol5PMelYNWg=="
+    },
+    "original_passphrase": {
+      "encrypted_data": "Z0FBQUFBQnFKYi11cXNfN3J2Y1FTRmFzc09GbzRTYjBuQW9tTDMwTnhHdGs1Z0NjNkZsbVlUSFZrMzVDaThTRkFaUFZjcTlBS0t2djNjS1otMzVIYU9wZ2lULTBHbEtyVkE9PQ==",
+      "salt": "4i0d/60zxDugRRghGVljag=="
+    },
+    "registered_at": "2026-06-08T00:29:58.448888",
+    "login_attempts": 5,
+    "successful_logins": 4,
+    "last_successful_login": "2026-06-08T00:33:23.136438"
+  }
+}

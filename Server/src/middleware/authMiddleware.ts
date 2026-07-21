@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 
 export interface AuthRequest extends Request {
   userID?: string| JwtPayload;
+  userRole?: string;
 }
 
 export const isAuthenticated = async(req: AuthRequest,res: Response,next: NextFunction)=>{
@@ -28,8 +29,9 @@ export const isAuthenticated = async(req: AuthRequest,res: Response,next: NextFu
     return;
   }
   const secret = process.env.SECRET_KEY as string;
-  const decoded = jwt.verify(token, secret) as { userID: Types.ObjectId };
+  const decoded = jwt.verify(token, secret) as { userID: Types.ObjectId; role: string };
   req.userID = decoded.userID;
+  req.userRole = decoded.role;
   next();
   }catch(err){
     res.status(401).json({

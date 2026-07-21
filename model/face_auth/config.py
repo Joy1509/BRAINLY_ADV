@@ -1,0 +1,5 @@
+FACE_MATCH_THRESHOLD = 0.5
+ENCODINGS_PER_USER = 5
+CAMERA_INDEX = 0
+USERS_DIR = "users"
+REGISTRY_FILE = "users/user_registry.json"

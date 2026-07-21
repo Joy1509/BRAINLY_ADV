@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../NotificationUi/NotificationProvider";
+import { useAuth } from "../../context/AuthContext";
 
 interface ProfileData {
   username: string;
@@ -34,8 +35,15 @@ interface Props { onClose: () => void; }
 const ProfilePanel = ({ onClose }: Props) => {
   const navigate = useNavigate();
   const { showNotification, showConfirm } = useNotification();
+  const { updateAvatar, logout } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [avatarMenu, setAvatarMenu] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiModal, setAiModal] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     (async () => {
@@ -55,11 +63,55 @@ const ProfilePanel = ({ onClose }: Props) => {
     })();
   }, []);
 
+  const uploadAvatar = async (file: File) => {
+    setAvatarLoading(true);
+    setAvatarMenu(false);
+    try {
+      const token = localStorage.getItem('token');
+      const form = new FormData();
+      form.append('avatar', file);
+      const res = await fetch(`${API_BASE}/api/v1/avatar`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(prev => prev ? { ...prev, avatar: data.avatar } : prev);
+        updateAvatar(data.avatar);
+        showNotification('success', 'Avatar updated!');
+      } else showNotification('error', data.message || 'Upload failed');
+    } catch { showNotification('error', 'Upload failed'); }
+    finally { setAvatarLoading(false); }
+  };
+
+  const generateAvatar = async () => {
+    if (!aiPrompt.trim()) return;
+    setAvatarLoading(true);
+    setAiModal(false);
+    setAvatarMenu(false);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/v1/avatar`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(prev => prev ? { ...prev, avatar: data.avatar } : prev);
+        updateAvatar(data.avatar);
+        showNotification('success', 'AI avatar generated!');
+        setAiPrompt('');
+      } else showNotification('error', data.message || 'Generation failed');
+    } catch { showNotification('error', 'Generation failed'); }
+    finally { setAvatarLoading(false); }
+  };
+
   const handleSignOut = async () => {
     const confirmed = await showConfirm("Sign Out", "Are you sure you want to sign out?", "warning");
     if (!confirmed) return;
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
+    logout();
     showNotification("success", "Signed out successfully");
     navigate("/");
   };
@@ -79,6 +131,34 @@ const ProfilePanel = ({ onClose }: Props) => {
         }
         .profile-panel { animation: slideIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
       `}</style>
+
+        {/* AI Prompt Modal */}
+        {aiModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setAiModal(false)}>
+            <div className="dark:bg-[#13131f] bg-white border dark:border-white/10 border-gray-200 rounded-2xl p-6 w-[320px] shadow-2xl" onClick={e => e.stopPropagation()}>
+              <h3 className="font-semibold dark:text-white text-gray-900 mb-1">Generate Avatar with AI</h3>
+              <p className="text-xs dark:text-white/40 text-gray-400 mb-4">Enter any name, word, or style — a unique avatar will be generated</p>
+              <input
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && generateAvatar()}
+                placeholder="e.g. galaxy fox, cool ninja, blazeboii"
+                className="w-full text-sm px-3 py-2.5 rounded-xl dark:bg-white/5 bg-gray-100 dark:text-white text-gray-900 border dark:border-white/10 border-gray-200 outline-none focus:ring-1 focus:ring-violet-500 mb-4"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setAiModal(false)}
+                  className="flex-1 px-3 py-2 rounded-xl text-sm dark:bg-white/5 bg-gray-100 dark:text-white/60 text-gray-600 transition-colors hover:dark:bg-white/10">
+                  Cancel
+                </button>
+                <button onClick={generateAvatar} disabled={!aiPrompt.trim()}
+                  className="flex-1 px-3 py-2 rounded-xl text-sm bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-40 transition-colors">
+                  ✨ Generate
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -106,16 +186,64 @@ const ProfilePanel = ({ onClose }: Props) => {
 
           {/* Avatar sits half-over the banner */}
           <div className="absolute left-6 bottom-0 translate-y-1/2">
-            {profile?.avatar ? (
-              <img
-                src={profile.avatar} alt={profile.username}
-                className="w-20 h-20 rounded-2xl border-4 dark:border-[#13131f] border-white object-cover shadow-xl"
+            <div className="relative">
+              {avatarLoading ? (
+                <div className="w-20 h-20 rounded-2xl border-4 dark:border-[#13131f] border-white bg-gradient-to-br from-violet-500/30 to-indigo-600/30 flex items-center justify-center shadow-xl">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-400" />
+                </div>
+              ) : profile?.avatar ? (
+                <img src={profile.avatar} alt={profile.username}
+                  className="w-20 h-20 rounded-2xl border-4 dark:border-[#13131f] border-white object-cover shadow-xl" />
+              ) : (
+                <div className="w-20 h-20 rounded-2xl border-4 dark:border-[#13131f] border-white bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl">
+                  <span className="text-2xl font-bold text-white">{initials}</span>
+                </div>
+              )}
+
+              {/* Edit button */}
+              <button
+                onClick={() => setAvatarMenu(v => !v)}
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-violet-600 hover:bg-violet-700 rounded-full flex items-center justify-center shadow-lg transition-colors"
+              >
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
+                </svg>
+              </button>
+
+              {/* Avatar menu */}
+              {avatarMenu && (
+                <div className="absolute left-0 top-full mt-2 w-44 dark:bg-[#1e1e30] bg-white border dark:border-white/10 border-gray-200 rounded-xl shadow-xl z-10 overflow-hidden">
+                  <button
+                    onClick={() => { setAvatarMenu(false); fileInputRef.current?.click(); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-3 text-sm dark:text-white/70 text-gray-700 dark:hover:bg-white/5 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload Photo
+                  </button>
+                  <div className="h-px dark:bg-white/5 bg-gray-100" />
+                  <button
+                    onClick={() => { setAvatarMenu(false); setAiModal(true); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-3 text-sm dark:text-white/70 text-gray-700 dark:hover:bg-white/5 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m1.636 6.364l.707-.707M12 21v-1m-6.364-1.636l.707-.707M6.343 6.343l-.707-.707" />
+                    </svg>
+                    Generate with AI
+                  </button>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ''; }}
               />
-            ) : (
-              <div className="w-20 h-20 rounded-2xl border-4 dark:border-[#13131f] border-white bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-xl">
-                <span className="text-2xl font-bold text-white">{initials}</span>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Provider badge */}

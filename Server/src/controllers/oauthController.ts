@@ -66,10 +66,10 @@ export function generateTokenAndRedirect(req: Request, res: Response) {
     }
 
     const secret = process.env.SECRET_KEY as string;
-    const token = jwt.sign({ userID: loggedUser._id }, secret, { expiresIn: 3600 });
+    const token = jwt.sign({ userID: loggedUser._id, role: loggedUser.role }, secret, { expiresIn: 3600 });
 
     // Redirect to frontend with token and userId
-    res.redirect(`http://localhost:5173/oauth-callback?token=${token}&userId=${loggedUser._id}`);
+    res.redirect(`http://localhost:5173/oauth-callback?token=${token}&userId=${loggedUser._id}&role=${loggedUser.role}`);
   } catch (err) {
     res.redirect('http://localhost:5173/?error=auth_failed');
   }

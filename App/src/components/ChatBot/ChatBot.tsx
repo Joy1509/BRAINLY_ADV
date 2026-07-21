@@ -12,45 +12,167 @@ interface HistoryItem {
   parts: { text: string }[];
 }
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string;
+interface FunctionCall {
+  name: string;
+  args: Record<string, any>;
+}
 
-const SYSTEM_CONTEXT = `You are a helpful assistant for Second Brain — a personal knowledge management web app.
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-Website Overview:
-- Second Brain helps users store, organize, and access their thoughts, ideas, bookmarks, and learning materials in one place.
-- Users can save links from YouTube, Twitter/X, Notion, Instagram, and plain Text notes.
-- Every saved item is displayed as a card with title, thumbnail, tags, date, and a summary auto-generated from the link.
+const URGENT_KEYWORDS = ['urgent', 'emergency', 'deadline', 'missing', 'lost', 'gone', 'asap', 'help', 'critical', 'immediately', 'right now', 'not working', 'broken'];
 
-Pages:
-- Login / Register page (/): Users sign up or log in to access their brain. Also supports OAuth login.
-- Home page (/home): The main dashboard. Shows all saved content as cards. Has a sidebar to filter by category (All, YouTube, Twitter, Notion, Instagram, Text). Has Add Content button, Share Brain button, and theme toggle.
-- Shared page (/shared/:id): A public read-only page showing content shared by a user via the Share Brain feature. No login required to view.
+function isUrgent(text: string): boolean {
+  const lower = text.toLowerCase();
+  return URGENT_KEYWORDS.some(k => lower.includes(k));
+}
 
-Features:
-- Add Content: Click the + Add Content button to open a modal. Paste any link (YouTube, Twitter, Notion, Instagram) or write a text note. The app auto-fetches the title and generates a summary.
-- Tagging: Add tags to any content for better organization and filtering.
-- Sidebar Filters: Filter content by category — All, YouTube, Twitter/Social, Notion/Document, Instagram, Text/Notes.
-- Share Brain: Click the Share button to generate a unique public link to your saved collection. Others can view it without logging in.
-- Delete Content: Each card has a delete button to remove it from your brain.
-- Theme Toggle: Switch between dark mode and light mode using the toggle in the top-right header.
-- Animated Navbar: The header has fun animated animals (dog, rabbit, fish, school of fish) walking/swimming across.
-- Gemini Chatbot (that's me!): A built-in AI assistant powered by Google Gemini, available at the bottom-right corner of the home page.
-- Auto Summary: When you add a link, the server fetches the page content and generates an AI summary for quick reading.
-- Date Stamping: Every card shows when it was saved.
-- Responsive Design: Optimized for desktop use.
+async function escalateToAdmin(message: string, token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/notifications/create`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: 'Urgent Help Request', message, priority: 'urgent' }),
+    });
+    return res.ok;
+  } catch { return false; }
+}
 
-Tech Stack (for developer questions):
-- Frontend: React + TypeScript + Vite + Tailwind CSS
-- Backend: Node.js + Express + TypeScript
-- Database: MongoDB
-- Auth: JWT + OAuth
-- AI: Google Gemini API
+const SYSTEM_CONTEXT = `You are Brainy, an AI assistant for Second Brain — a personal knowledge management web app. You can both answer questions AND perform actions.
 
-Always be friendly, concise, and helpful. If asked about something unrelated to the website, answer normally as a general assistant.`;
+🧠 CORE ABILITIES:
+- Answer questions about Second Brain features
+- Add content (YouTube, Twitter, Instagram, Notion, Text notes)
+- Search and filter existing content
+- Delete content items
+- Create share links
+- Provide content summaries and insights
+
+📋 AVAILABLE ACTIONS:
+1. add_content(url, title, contentType, tags) - Add new content to user's brain
+2. search_content(query, contentType) - Search existing content
+3. delete_content(contentId) - Remove content by ID
+4. create_share_link() - Generate shareable link for user's brain
+5. get_content_stats() - Get user's content statistics
+
+🎯 WHEN TO USE FUNCTIONS:
+- User asks to "add", "save", "store" content → use add_content
+- User asks to "find", "search", "show me" content → use search_content  
+- User asks to "delete", "remove" content → use delete_content
+- User asks to "share" their brain → use create_share_link
+- User asks about their "stats" or "overview" → use get_content_stats
+
+💡 SUPPORTED CONTENT TYPES:
+- YouTube: youtube.com, youtu.be links
+- Twitter: twitter.com, x.com links  
+- Instagram: instagram.com links
+- Notion: notion.so, notion.site links
+- Text: Plain text notes (no URL needed)
+
+🎨 PERSONALITY: Be friendly, helpful, and proactive. Suggest actions when appropriate. Always confirm successful operations.
+
+⚠️ STRICT RULES FOR FUNCTION CALLS:
+- tags must ALWAYS be a JSON array e.g. ["tag1", "tag2"], never a string
+- contentType must ALWAYS be one of: Youtube, Twitter, Instagram, Notion, Text
+- Never pass undefined or null for required fields`;
+
+// Function definitions for Groq (OpenAI-compatible)
+const TOOLS = [{
+  "functions": [
+    {
+      "name": "add_content",
+      "description": "Add new content to the user's Second Brain",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string", 
+            "description": "URL to add (optional for text notes)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title for the content"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["Youtube", "Twitter", "Instagram", "Notion", "Text"],
+            "description": "Type of content being added"
+          },
+          "tags": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Tags array e.g. [\"react\", \"tutorial\"]. Must be an array, never a string."
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content (required for Text type)"
+          }
+        },
+        "required": ["title", "contentType"]
+      }
+    },
+    {
+      "name": "search_content",
+      "description": "Search and retrieve user's existing content",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query (title, tags, content type)"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["All", "Youtube", "Twitter", "Instagram", "Notion", "Text", "Voice"],
+            "description": "Filter by content type"
+          }
+        }
+      }
+    },
+    {
+      "name": "delete_content",
+      "description": "Delete content from user's Second Brain by ID or title",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "description": "ID of content to delete (use this if you have it)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of content to delete (used if contentId is unknown)"
+          }
+        }
+      }
+    },
+    {
+      "name": "create_share_link",
+      "description": "Generate a shareable link for user's Second Brain",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_content_stats",
+      "description": "Get statistics about user's content",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}];
+
+const GROQ_TOOLS = TOOLS[0].functions.map((fn: any) => ({
+  type: 'function',
+  function: { name: fn.name, description: fn.description, parameters: fn.parameters }
+}));
 
 const INITIAL_HISTORY: HistoryItem[] = [
   { role: 'user', parts: [{ text: SYSTEM_CONTEXT }] },
-  { role: 'model', parts: [{ text: "Understood! I'm ready to help with Second Brain and any general questions." }] },
+  { role: 'model', parts: [{ text: "Hi! I'm Brainy 🧠 I can help you manage your Second Brain! I can add content, search your saved items, create share links, and more. What would you like to do?" }] },
 ];
 
 function RainEffect({ isDark }: { isDark: boolean }) {
@@ -152,7 +274,7 @@ export default function ChatBot() {
   const { isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: "Hi! I'm Brainy 😁 How can I help you today?" }
+    { role: 'bot', text: "Hi! I'm Brainy 🧠 Your agentic AI assistant! I can help you:\n\n✅ Add content (YouTube, Twitter, Instagram, Notion, Text)\n🔍 Search your saved items\n📊 Show your content stats\n🗑️ Delete content\n🔗 Create share links\n\nTry saying: 'Add this YouTube video' or 'Show my stats'!" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -163,6 +285,136 @@ export default function ChatBot() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Please log in to use this feature');
+    }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  const executeFunctionCall = async (functionCall: FunctionCall): Promise<string> => {
+    try {
+      const { name, args } = functionCall;
+      if (!args) return `❌ Invalid function call: no arguments provided`;
+      if (args.tags && typeof args.tags === 'string') {
+        args.tags = args.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+      } else if (args.tags && !Array.isArray(args.tags)) {
+        args.tags = Object.values(args.tags || {});
+      }
+      if (!Array.isArray(args.tags)) {
+        args.tags = [];
+      }
+      
+      switch (name) {
+        case 'add_content':
+          const addResponse = await fetch(`${API_BASE_URL}/api/v1/addcontent`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({
+              link: args.url || '',
+              title: args.title,
+              contentType: args.contentType,
+              tags: args.tags || [],
+              text: args.text || ''
+            })
+          });
+          if (!addResponse.ok) throw new Error('Failed to add content');
+          window.dispatchEvent(new CustomEvent('brain:reload'));
+          return `✅ Successfully added "${args.title}" to your Second Brain!`;
+          
+        case 'search_content':
+          const searchResponse = await fetch(`${API_BASE_URL}/api/v1/content`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+            credentials: 'include'
+          });
+          if (!searchResponse.ok) throw new Error('Failed to search content');
+          const searchData = await searchResponse.json();
+          
+          let filtered = searchData.data || [];
+          if (args.contentType && args.contentType !== 'All') {
+            filtered = filtered.filter((item: any) => item.contentType === args.contentType);
+          }
+          if (args.query) {
+            const query = args.query.toLowerCase();
+            filtered = filtered.filter((item: any) => 
+              item.title?.toLowerCase().includes(query) ||
+              item.tags?.some((tag: string) => tag.toLowerCase().includes(query)) ||
+              item.summary?.toLowerCase().includes(query)
+            );
+          }
+          
+          if (filtered.length === 0) {
+            return `🔍 No content found${args.query ? ` for "${args.query}"` : ''}${args.contentType && args.contentType !== 'All' ? ` in ${args.contentType}` : ''}.`;
+          }
+          
+          const results = filtered.slice(0, 5).map((item: any, i: number) => 
+            `${i + 1}. **${item.title}** (${item.contentType}) [ID: ${item._id}]${item.tags?.length ? ` - Tags: ${item.tags.join(', ')}` : ''}`
+          ).join('\n');
+          
+          return `🔍 Found ${filtered.length} item(s):\n\n${results}${filtered.length > 5 ? '\n\n...and more items' : ''}`;
+          
+        case 'delete_content':
+          let deleteId = args.contentId;
+          if (!deleteId && args.title) {
+            const allRes = await fetch(`${API_BASE_URL}/api/v1/content`, { method: 'GET', headers: getAuthHeaders(), credentials: 'include' });
+            if (!allRes.ok) throw new Error('Failed to fetch content');
+            const allData = await allRes.json();
+            const match = (allData.data || []).find((item: any) => item.title?.toLowerCase() === args.title.toLowerCase());
+            if (!match) return `❌ No content found with title "${args.title}"`;
+            deleteId = match._id;
+          }
+          if (!deleteId) return `❌ Please provide a content ID or title to delete`;
+          const deleteResponse = await fetch(`${API_BASE_URL}/api/v1/delete/${deleteId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+            credentials: 'include'
+          });
+          if (!deleteResponse.ok) throw new Error('Failed to delete content');
+          window.dispatchEvent(new CustomEvent('brain:reload'));
+          return `🗑️ Content deleted successfully!`;
+          
+        case 'create_share_link':
+          const shareResponse = await fetch(`${API_BASE_URL}/api/v1/create-share`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include'
+          });
+          if (!shareResponse.ok) throw new Error('Failed to create share link');
+          const shareData = await shareResponse.json();
+          return `🔗 Share link created: ${shareData.shareUrl}\n\nAnyone with this link can view your Second Brain!`;
+          
+        case 'get_content_stats':
+          const statsResponse = await fetch(`${API_BASE_URL}/api/v1/content`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+            credentials: 'include'
+          });
+          if (!statsResponse.ok) throw new Error('Failed to get stats');
+          const statsData = await statsResponse.json();
+          const content = statsData.data || [];
+          
+          const stats = content.reduce((acc: any, item: any) => {
+            acc[item.contentType] = (acc[item.contentType] || 0) + 1;
+            return acc;
+          }, {});
+          
+          const statsList = Object.entries(stats).map(([type, count]) => `- ${type}: ${count}`).join('\n');
+          return `📊 Your Second Brain Stats:\n\n📚 Total Items: ${content.length}\n\n${statsList || 'No content yet!'}`;
+          
+        default:
+          return `❌ Unknown function: ${name}`;
+      }
+    } catch (error: any) {
+      return `❌ Error: ${error.message}`;
+    }
+  };
 
   const sendMessage = async () => {
     const text = input.trim();
@@ -176,21 +428,65 @@ export default function ChatBot() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: historyRef.current })
+      // Check urgency — escalate to admin inbox
+      const token = localStorage.getItem('token');
+      if (token && isUrgent(text)) {
+        const escalated = await escalateToAdmin(text, token);
+        if (escalated) {
+          const escalationMsg = '🚨 Your message has been flagged as urgent and forwarded to an admin. You\'ll receive a reply in your inbox shortly. I\'ll also try to help you now...';
+          setMessages(prev => [...prev, { role: 'bot', text: escalationMsg }]);
+          historyRef.current.push({ role: 'model', parts: [{ text: escalationMsg }] });
         }
-      );
+      }
+
+      const groqMessages = [
+        { role: 'system', content: SYSTEM_CONTEXT },
+        ...historyRef.current
+          .filter(m => !(m.role === 'user' && m.parts[0]?.text === SYSTEM_CONTEXT))
+          .map(m => ({
+            role: m.role === 'model' ? 'assistant' : 'user',
+            content: m.parts[0]?.text || ''
+          }))
+      ];
+
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: groqMessages, tools: GROQ_TOOLS, tool_choice: 'auto' })
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'API error');
-      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
-      historyRef.current.push({ role: 'model', parts: [{ text: reply }] });
-      setMessages(prev => [...prev, { role: 'bot', text: reply }]);
+
+      const message = data.choices?.[0]?.message;
+      if (!message) throw new Error('No response from AI');
+
+      const toolCall = message.tool_calls?.[0];
+      if (toolCall) {
+        const parsedArgs = JSON.parse(toolCall.function.arguments || '{}') || {};
+        if (parsedArgs.tags) {
+          if (typeof parsedArgs.tags === 'string') {
+            parsedArgs.tags = parsedArgs.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+          } else if (!Array.isArray(parsedArgs.tags)) {
+            parsedArgs.tags = Object.values(parsedArgs.tags || {});
+          }
+        } else {
+          parsedArgs.tags = [];
+        }
+        const functionResult = await executeFunctionCall({
+          name: toolCall.function.name,
+          args: parsedArgs
+        });
+
+        historyRef.current.push({ role: 'model', parts: [{ text: functionResult }] });
+        setMessages(prev => [...prev, { role: 'bot', text: functionResult }]);
+      } else {
+        const reply = message.content || 'No response.';
+        historyRef.current.push({ role: 'model', parts: [{ text: reply }] });
+        setMessages(prev => [...prev, { role: 'bot', text: reply }]);
+      }
     } catch (err: any) {
-      setMessages(prev => [...prev, { role: 'bot', text: '⚠ ' + err.message, isError: true }]);
+      console.error('Chat error:', err);
+      setMessages(prev => [...prev, { role: 'bot', text: '⚠️ ' + err.message, isError: true }]);
     } finally {
       setLoading(false);
       textareaRef.current?.focus();
@@ -247,7 +543,7 @@ export default function ChatBot() {
                   <span className={`text-sm font-bold tracking-wide ${isDark ? 'text-white' : 'text-violet-900'}`}>Brainy</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
-                <p className={`text-[10px] ${isDark ? 'text-violet-300/60' : 'text-violet-600/70'}`}>Powered by Google · Always on</p>
+                <p className={`text-[10px] ${isDark ? 'text-violet-300/60' : 'text-violet-600/70'}`}>Powered by Groq · Always on</p>
               </div>
             </div>
           </div>
@@ -258,12 +554,12 @@ export default function ChatBot() {
           {/* Status bar */}
           <div className={`flex items-center gap-3 px-4 py-2 text-[10px] ${isDark ? 'text-white/30' : 'text-violet-500/60'}`}>
             <span className="flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-emerald-400" /> Online
+              <span className="w-1 h-1 rounded-full bg-emerald-400" /> Agentic Mode
             </span>
             <span>·</span>
             <span>{messages.length - 1} messages</span>
             <span>·</span>
-            <span>gemini-2.5-flash</span>
+            <span>llama-3.3-70b</span>
           </div>
         </div>
 
